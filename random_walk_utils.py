@@ -13,6 +13,7 @@ import scipy.sparse as sp
 import traceback
 from scipy.spatial import distance
 import sys
+import argparse
 
 class BoundingBox(object):
     '''
@@ -993,13 +994,13 @@ def show_information(DATASET, EXTRACTOR, TRAIN, TEST):
     print('We splited the data in ', TEST * 100, '% of test files and', TRAIN * 100, '% of train files')
     print('----------------------------------------------------------------')
 
-def main():    
+def main(args):
 
-    DATASET = 'MIT67'  # [VRD, MIT67, UNREL]
+    DATASET = args.dataset  # [VRD, MIT67, UNREL]
 
-    EXTRACTOR = 'VGG16'
+    EXTRACTOR = args.extractor
 
-    POOLING = 'avg'
+    POOLING = args.pooling
 
     TRAIN = 0.8
 
@@ -1011,12 +1012,7 @@ def main():
 
     create_gcn_labels_file(DATASET=DATASET)
 
-    try:
-        print(sys.argv[1])
-        RANDOM_WALK_STEP = int(sys.argv[1])
-    except:
-
-        RANDOM_WALK_STEP = 1
+    RANDOM_WALK_STEP = args.walk
 
     show_information(DATASET=DATASET, EXTRACTOR=EXTRACTOR, TRAIN=TRAIN, TEST=TEST)
     images = build_image_and_bounding_box_data(DATASET=DATASET)
@@ -1052,4 +1048,23 @@ def main():
     print('FINISHED THE CREATION OF GCN DATA FOR DATASET={} EXTRATOR={} STEP={}'.format(DATASET, EXTRACTOR, RANDOM_WALK_STEP))   
 
 if __name__ == '__main__':
-    main()
+
+    parser = argparse.ArgumentParser(description='Data processing')
+
+    parser.add_argument('--walk', type=int, default=1,
+                        help='The number of walks to give')
+
+    parser.add_argument('--dataset', type=str, default='UNREL',
+                        help='The to process')
+
+    parser.add_argument('--extractor', type=str, default='VGG16',
+                        help='The number of walks to give')
+
+    parser.add_argument('--pooling', type=str, default='avg',
+                        help='The number of walks to give')
+
+    args = parser.parse_args()
+
+    print(args)
+
+    main(args)
