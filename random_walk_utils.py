@@ -52,9 +52,6 @@ class Image(object):
                'Lista de Bounding Boxes => ' + self.list_of_bounding_boxes
 
 
-
-
-
 def array_from_feature_file(file_path):
     '''
     In this method we get all the values extract from the models, we saved in the feature_files path
@@ -724,24 +721,6 @@ def get_random_walk_and_random_cut_edges(g, weights, step):
     '''
     This method builds the Random Walk and Random Cut graphs, using the euclidean distance introduced as weights param.
     We used the Computing Communities in Large Networks Using Random Walks approach, with the igraph lib.
-    TY  - CONF
-    AU  - Pons, Pascal
-    AU  - Latapy, Matthieu
-    ED  - Yolum, pInar
-    ED  - Güngör, Tunga
-    ED  - Gürgen, Fikret
-    ED  - Özturan, Can
-    PY  - 2005
-    DA  - 2005//
-    TI  - Computing Communities in Large Networks Using Random Walks
-    BT  - Computer and Information Sciences - ISCIS 2005
-    SP  - 284
-    EP  - 293
-    PB  - Springer Berlin Heidelberg
-    CY  - Berlin, Heidelberg
-    AB  - Dense subgraphs of sparse graphs (communities), which appear in most real-world complex networks, play an important role in many contexts. Computing them however is generally expensive. We propose here a measure of similarities between vertices based on random walks which has several important advantages: it captures well the community structure in a network, it can be computed efficiently, it works at various scales, and it can be used in an agglomerative algorithm to compute efficiently the community structure of a network. We propose such an algorithm which runs in time O(mn2) and space O(n2) in the worst case, and in time O(n2log n) and space O(n2) in most real-world cases (n and m are respectively the number of vertices and edges in the input graph).
-    SN  - 978-3-540-32085-2
-    ID  - 10.1007/11569596_31
 
     :param g:
     :param weights:
