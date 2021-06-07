@@ -25,10 +25,6 @@ import tensorflow.keras.applications as app
 import efficientnet.tfkeras as efn
 from efficientnet.tfkeras import EfficientNetB0, EfficientNetB1, EfficientNetB2, EfficientNetB3, EfficientNetB4, EfficientNetB5, EfficientNetB6, EfficientNetB7
 
-
-
-
-
 import matplotlib
 import os
 from tqdm import tqdm
@@ -135,7 +131,7 @@ def get_model(model_name, input_shape):
 
 if __name__ == '__main__':
 
-    models = ['InceptionResNetV2']
+    models = ['VGG16', 'ResNet50', 'InceptionV3', 'InceptionResNetV2', 'Xception', 'EfficientNet']
 
     DATASETS = ['UNREL', 'MIT67', 'VRD']
 
