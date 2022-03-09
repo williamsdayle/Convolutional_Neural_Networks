@@ -1,7 +1,6 @@
 import pickle as pk
 import time
 import os
-from igraph.clustering import Dendrogram
 import numpy as np
 import pandas as pd
 import igraph
@@ -9,14 +8,9 @@ from scipy.sparse import csr_matrix
 from collections import defaultdict
 from tqdm import tqdm
 import random
-import scipy.sparse as sp
 import traceback
 from scipy.spatial import distance
-import sys
-import argparse
-from ..random_walk_utils import FullyConnectedGraph
 from ..random_walk_utils import RandomWalkGraph
-from ..random_walk_utils import DataCreation
 from ..random_walk_utils import BoundingBox
 from ..random_walk_utils import Image
 
@@ -24,7 +18,7 @@ class Utils(object):
     def __init__(self):
         pass
 
-    def array_from_feature_file(file_path):
+    def array_from_feature_file(self, file_path):
         '''
         In this method we get all the values extract from the models, we saved in the feature_files path
         :param file_path:
@@ -58,7 +52,7 @@ class Utils(object):
 
         return feature_vector
 
-    def build_image_and_bounding_box_data(DATASET):
+    def build_image_and_bounding_box_data(self, DATASET):
         '''
             This method gets the dataset and build a list of all images with their respective bounding boxes and informations
             This method needs of some data out of this code:
@@ -125,7 +119,7 @@ class Utils(object):
 
         return images
 
-    def create_and_save_gcn_data(DATASET, EXTRACTOR, folds, FC, RW, RC, RANDOM_WALK_STEP):
+    def create_and_save_gcn_data(self, DATASET, EXTRACTOR, folds, FC, RW, RC, RANDOM_WALK_STEP):
 
         for kfold_size in tqdm(range(len(folds))):
 
@@ -141,16 +135,16 @@ class Utils(object):
 
             test_indexes = fold['test_index']
 
-            gcn_graph_fc = create_pickle_file(FC)
-            gcn_graph_rw = create_pickle_file(RW)
-            gcn_graph_rc = create_pickle_file(RC)
+            gcn_graph_fc = self.create_pickle_file(FC)
+            gcn_graph_rw = self.create_pickle_file(RW)
+            gcn_graph_rc = self.create_pickle_file(RC)
 
             DST_PATH = 'gcn/data/{}'.format(DATASET)
-            save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_fc)
-            save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rw, random_walk=True, step=RANDOM_WALK_STEP)
-            save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rc, random_cut=True, step=RANDOM_WALK_STEP)
+            self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_fc)
+            self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rw, random_walk=True, step=RANDOM_WALK_STEP)
+            self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rc, random_cut=True, step=RANDOM_WALK_STEP)
 
-    def create_data(DATASET, EXTRACTOR, POOLING, kfold, train, kfold_size=0):
+    def create_data(self, DATASET, EXTRACTOR, POOLING, kfold, train, kfold_size=0):
         '''
         Here we create all the data for GCN, we based our model and intro files in the (KIPF; WELLING, 2016).
 
@@ -225,7 +219,7 @@ class Utils(object):
 
                             #print(file_loaded)
 
-                        features = array_from_feature_file(file_loaded)
+                        features = self.array_from_feature_file(file_loaded)
 
                         x.append(features)
                         allx.append(features)
@@ -247,7 +241,7 @@ class Utils(object):
                             file_loaded = '{}/{}/{}/{}/{}'.format(metadata_loaded[0], DATASET, EXTRACTOR, label_loaded,
                                                                 file)
 
-                        features = array_from_feature_file(file_loaded)
+                        features = self.array_from_feature_file(file_loaded)
 
                         tx.append(features)
 
@@ -257,14 +251,14 @@ class Utils(object):
 
                     for file_loaded, label_loaded, index in zip(train_data_loaded, train_labels_loaded,
                                                                 range(len(train_data_loaded))):
-                        label_index_loaded = get_label_index(DATASET=DATASET, label=label_loaded)
+                        label_index_loaded = self.get_label_index(DATASET=DATASET, label=label_loaded)
 
                         y[index][label_index_loaded] = 1
                         ally[index][label_index_loaded] = 1
 
                     for file_loaded, label_loaded, index in zip(test_data_loaded, test_labels_loaded,
                                                                 range(len(test_data_loaded))):
-                        label_index_loaded = get_label_index(DATASET=DATASET, label=label_loaded)
+                        label_index_loaded = self.get_label_index(DATASET=DATASET, label=label_loaded)
 
 
                         ty[index][label_index_loaded] = 1
@@ -339,7 +333,7 @@ class Utils(object):
 
                             all_train_files.append(file_path)
 
-                            features = array_from_feature_file(file_path)
+                            features = self.array_from_feature_file(file_path)
 
                             x.append(features)
                             allx.append(features)
@@ -352,7 +346,7 @@ class Utils(object):
 
                             all_test_files.append(file_path)
 
-                            features = array_from_feature_file(file_path)
+                            features = self.array_from_feature_file(file_path)
 
                             tx.append(features)
 
@@ -375,10 +369,6 @@ class Utils(object):
                         train_size = int(round((number_of_files_in_the_current_label * train), 1))
 
                         test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
-
-                        # print('Label Size',  len(files))
-                        # print('Train Size', int(train_size))
-                        # print('Test Size', int(test_size))
 
                         train_files = random.sample(files, train_size)
                         test_files = [data for data in files if data not in train_files]
@@ -446,7 +436,7 @@ class Utils(object):
 
         return folds
 
-    def create_gcn_labels_file(DATASET):
+    def create_gcn_labels_file(self, DATASET):
 
         '''
         This method creates a txt file with all the dataset labels, this file will be used in the label evaluation in
@@ -464,7 +454,7 @@ class Utils(object):
         f.write(str(labels_of_the_dataset))
         f.close()
 
-    def create_graph_data(DATASET, EXTRACTOR, POOLING, images, RANDOM_WALK_STEP):
+    def create_graph_data(self, DATASET, EXTRACTOR, POOLING, images, RANDOM_WALK_STEP, OPTMIZATION_METHOD, radius = None, threshold = None, seed = None):
         '''
         In this method we created all our graph structure...
 
@@ -478,6 +468,10 @@ class Utils(object):
         ;param POOLING:
         :param images:
         :param RANDOM_WALK_STEP:
+        :param OPTMIZATION_METHOD
+        :param radius = None
+        :param threshold = None
+        :param seed = None
         :return Full Connected, Random Walk, Random Cut GRAPHS:
         '''
 
@@ -485,6 +479,8 @@ class Utils(object):
         random_walk_graph = igraph.Graph(directed=False)
         random_cut_graph = igraph.Graph(directed=False)
         global_graph = igraph.Graph(directed=False)
+
+        random_walk_object = RandomWalkGraph(RANDOM_WALK_STEP)
 
         lst_fc = []
         lst_rw = []
@@ -557,7 +553,7 @@ class Utils(object):
                     src_path = 'feature_files_avg/{}/{}/{}'.format(DATASET, EXTRACTOR, image.image_label)
                 path = os.path.join(src_path, bounding_box_file)
                 global_graph.vs[global_count]['bb_path'] = path
-                features = array_from_feature_file(path)
+                features = self.array_from_feature_file(path)
                 weights_for_random_walk.append(features)
 
 
@@ -575,7 +571,8 @@ class Utils(object):
                 for feature_target in weights_for_random_walk:
                     weights.append(distance.euclidean(feature_source, feature_target))
 
-            random_walk_edges, random_cut_edges = get_random_walk_and_random_cut_edges(graph, weights, RANDOM_WALK_STEP)
+            random_walk_edges = random_walk_object.classic_random_walk(graph, weights)
+            random_cut_edges = random_walk_object.graph_with_random_cut(graph)
 
             random_walk_graph_current.add_edges(
                 random_walk_edges)  # inserting all edges in the graph, this is the random walk edges
@@ -640,7 +637,7 @@ class Utils(object):
 
         return full_connected_graph, random_walk_graph, random_cut_graph, fc_build_time, rw_build_time, rc_build_time
 
-    def create_pickle_file(graph):
+    def create_pickle_file(self, graph):
 
         '''
         This method builds the graph structure to be used in the pickle file
@@ -658,13 +655,13 @@ class Utils(object):
 
             node = node + 1
 
-        d_dictionary = remove_duplicated_values(d_dictionary)
+        d_dictionary = self.remove_duplicated_values(d_dictionary)
 
         print("Graph size: %s " % str(sum([len(d) for (k, d) in d_dictionary.items()])))
 
         return d_dictionary
 
-    def get_label_index(DATASET, label):
+    def get_label_index(self, DATASET, label):
 
         '''
         Method used in the data build process
@@ -688,86 +685,86 @@ class Utils(object):
 
         return label_index
 
-    def get_random_walk_and_random_cut_edges(g, weights, step):
+    # def get_random_walk_and_random_cut_edges(self, g, weights, step):
 
-        '''
-        This method builds the Random Walk and Random Cut graphs, using the euclidean distance introduced as weights param.
-        We used the Computing Communities in Large Networks Using Random Walks approach, with the igraph lib.
+    #     '''
+    #     This method builds the Random Walk and Random Cut graphs, using the euclidean distance introduced as weights param.
+    #     We used the Computing Communities in Large Networks Using Random Walks approach, with the igraph lib.
 
-        :param g:
-        :param weights:
-        :param step:
-        :return:
-        '''
+    #     :param g:
+    #     :param weights:
+    #     :param step:
+    #     :return:
+    #     '''
 
-        bb = len(g.vs)    
+    #     bb = len(g.vs)    
 
-        dendrogram = g.community_walktrap(weights=weights, steps=step)
+    #     dendrogram = g.community_walktrap(weights=weights, steps=step)
 
-        edges = []
+    #     edges = []
 
-        if bb > 3:
+    #     if bb > 3:
 
-            for i in range(bb):
-                edges.append((i, i))
+    #         for i in range(bb):
+    #             edges.append((i, i))
 
-            clusters = dendrogram.as_clustering(n=dendrogram.optimal_count)  # or clusters = dendrogram.as_clustering(n=len(dendrogram.merges))        
+    #         clusters = dendrogram.as_clustering(n=dendrogram.optimal_count)  # or clusters = dendrogram.as_clustering(n=len(dendrogram.merges))        
 
-            for cluster, index_clust in zip(clusters, range(len(clusters))):
+    #         for cluster, index_clust in zip(clusters, range(len(clusters))):
 
-                for node in cluster:
+    #             for node in cluster:
 
-                    edge = (index_clust, node)
+    #                 edge = (index_clust, node)
 
-                    if edge not in edges:
+    #                 if edge not in edges:
 
-                        edges.append(edge)
+    #                     edges.append(edge)
 
-        else:
+    #     else:
 
-            edges = g.get_edgelist()
+    #         edges = g.get_edgelist()
 
-        rdc = igraph.Graph(directed=False)
-        rdg = igraph.Graph(directed=False)
+    #     rdc = igraph.Graph(directed=False)
+    #     rdg = igraph.Graph(directed=False)
 
-        for i in range(bb):
-            rdc.add_vertices(1)
-            rdg.add_vertices(1)
+    #     for i in range(bb):
+    #         rdc.add_vertices(1)
+    #         rdg.add_vertices(1)
 
-        rdg.add_edges(edges)
+    #     rdg.add_edges(edges)
 
-        full_connected_edges = g.get_edgelist()
+    #     full_connected_edges = g.get_edgelist()
 
-        random_walk_edges_size = len(rdg.get_edgelist())
+    #     random_walk_edges_size = len(rdg.get_edgelist())
 
-        full_connected_edges_size = len(g.get_edgelist())
+    #     full_connected_edges_size = len(g.get_edgelist())
 
-        cutted_edges = full_connected_edges_size - random_walk_edges_size
+    #     cutted_edges = full_connected_edges_size - random_walk_edges_size
 
-        full_connected_uptaded = len(full_connected_edges)
+    #     full_connected_uptaded = len(full_connected_edges)
 
-        while cutted_edges > 0:
+    #     while cutted_edges > 0:
 
-            position = random.randint(0, full_connected_uptaded - 1)
+    #         position = random.randint(0, full_connected_uptaded - 1)
 
-            source, target = full_connected_edges[position]
+    #         source, target = full_connected_edges[position]
 
-            if source != target:
+    #         if source != target:
 
-                cutted_edges = cutted_edges - 1
-                del full_connected_edges[position]
+    #             cutted_edges = cutted_edges - 1
+    #             del full_connected_edges[position]
 
-            else:
-                pass
+    #         else:
+    #             pass
 
-            full_connected_uptaded = len(full_connected_edges)
-            # print('Full Size', full_connected_uptaded)
+    #         full_connected_uptaded = len(full_connected_edges)
+    #         # print('Full Size', full_connected_uptaded)
 
-        rdc.add_edges(full_connected_edges)
+    #     rdc.add_edges(full_connected_edges)
 
-        return rdg.get_edgelist(), rdc.get_edgelist()
+    #     return rdg.get_edgelist(), rdc.get_edgelist()
 
-    def remove_repetidos(lista):
+    def remove_repetidos(self, lista):
         l = []
         for i in lista:
             if i not in l:
@@ -775,19 +772,19 @@ class Utils(object):
         l.sort()
         return l
 
-    def remove_duplicated_values(default_dict_list):
+    def remove_duplicated_values(self, default_dict_list):
 
         dict_graph = defaultdict(list)
 
         for keys, values in default_dict_list.items():
 
-            new_list = remove_repetidos(values)
+            new_list = self.remove_repetidos(values)
 
             dict_graph[keys] = sorted(new_list)
 
         return dict_graph
 
-    def save(model_name, dst_path, fold, x, tx, allx, y, ty, ally, test_indexes, graph, random_walk=False, random_cut=False, step=None):
+    def save(self, model_name, dst_path, fold, x, tx, allx, y, ty, ally, test_indexes, graph, random_walk=False, random_cut=False, step=None):
 
         '''
         Here we save all data in pickle format.
@@ -879,7 +876,7 @@ class Utils(object):
         except:
             traceback.print_exc()
 
-    def save_connections(graph, DATASET, EXTRACTOR, type, walk=None):
+    def save_connections(self, graph, DATASET, EXTRACTOR, type, walk=None):
 
         summary = graph.summary()
 
@@ -903,7 +900,7 @@ class Utils(object):
 
             file.close()
 
-    def save_process_time(DATASET, FC_TIME, RW_TIME, RC_TIME, WALK, MODEL):
+    def save_process_time(self, DATASET, FC_TIME, RW_TIME, RC_TIME, WALK, MODEL):
 
         ##########################
         #
@@ -947,7 +944,7 @@ class Utils(object):
 
         file.close()
 
-    def show_information(DATASET, EXTRACTOR, TRAIN, TEST):
+    def show_information(self, DATASET, EXTRACTOR, TRAIN, TEST):
         '''
         This method just print informations in shell
         :param DATASET:
