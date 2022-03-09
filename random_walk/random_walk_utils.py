@@ -1,27 +1,7 @@
-import pickle as pk
-import time
-import os
-from igraph.clustering import Dendrogram
 import numpy as np
 import pandas as pd
 import igraph
-from scipy.sparse import csr_matrix
-from collections import defaultdict
-from tqdm import tqdm
 import random
-import scipy.sparse as sp
-import traceback
-from scipy.spatial import distance
-import sys
-import argparse
-
-class FullyConnectedGraph(object):
-    def __init__(self, number_of_nodes):
-        self.number_of_nodes = number_of_nodes
-
-    def create_fc_graph(self):
-        # This method creates a fully connected graph
-        pass
 
 class RandomWalkGraph(object):
     def __init__(self, walk):
@@ -29,39 +9,90 @@ class RandomWalkGraph(object):
         # the number of nodes has to be the same as the number of objects in the image
         # the first graph will be fully connected
         self.walk = walk
+        self.cutted_edges = 0
+        self.number_of_bboxes = 0
 
     def central_bias_random_walk(self, graph, radius):
         # This method uses the radius to maintain the edges, using a full connected as start
-        pass
-
-    def classic_random_walk(self, graph):
-        # This method uses the classic random walk from the igraph library
         pass
 
     def weighted_random_walk(self, graph, threshold):
         # This method uses the weighted edges and a threshold to maintain the edges insied the TH value
         pass
 
-    def graph_with_random_cut(self, graph, number_of_nodes_cutted):
+    def classic_random_walk(self, graph, weights):        
+        '''
+        This method builds the Random Walk and Random Cut graphs, using the euclidean distance introduced as weights param.
+        We used the Computing Communities in Large Networks Using Random Walks approach, with the igraph lib.
+
+        :param g:
+        :param weights:
+        :param step:
+        :return:
+        '''
+        self.number_of_bboxes = len(graph.vs)
+        dendrogram = graph.community_walktrap(weights=weights, steps=self.step)
+        edges = []
+        if self.number_of_bboxes > 3:
+            for i in range(self.number_of_bboxes):
+                edges.append((i, i))
+            clusters = dendrogram.as_clustering(n=dendrogram.optimal_count)  # or clusters = dendrogram.as_clustering(n=len(dendrogram.merges))        
+            for cluster, index_clust in zip(clusters, range(len(clusters))):
+                for node in cluster:
+                    edge = (index_clust, node)
+                    if edge not in edges:
+                        edges.append(edge)
+        else:
+            edges = graph.get_edgelist()
+        rdg = igraph.Graph(directed=False)
+        for i in range(self.number_of_bboxes):
+            rdg.add_vertices(1)
+        rdg.add_edges(edges)
+        full_connected_edges = graph.get_edgelist()
+        random_walk_edges_size = len(rdg.get_edgelist())
+        self.cutted_edges = len(full_connected_edges) - random_walk_edges_size
+        return rdg.get_edgelist()
+
+    def graph_with_random_cut(self, graph):
         # This method returns the graph using a random cut method, the set of edges will be created randomly
         # This method uses the optimized graph to create another one with random edges created
-        pass
+        
+        full_connected_edges = graph.get_edgelist()
+        rdc = igraph.Graph(directed=False)
+        for i in range(self.number_of_bboxes):
+            rdc.add_vertices(1)
+        full_connected_updated = len(full_connected_edges)
+        while self.cutted_edges > 0:
+            position = random.randint(0, full_connected_updated - 1)
+            source, target = full_connected_edges[position]
+            if source != target:
+                self.cutted_edges = self.cutted_edges - 1
+                del full_connected_edges[position]
+            else:
+                pass
+            full_connected_updated = len(full_connected_edges)
+        rdc.add_edges(full_connected_edges)
+        return rdc.get_edgelist()
 
-    def random_edge_creation(self, graph, seed):
-        # This method we create a graph with random edges created, the seed value is the number of edges that will be created
-        # The seed value has to be equal or smaller than the set of nodes
-        pass
+    def random_edge_creation(self, graph, percentage):
+        # This method we create a graph with random edges created, the percentage value will be the edge creation value maintain
+        self.number_of_bboxes = len(graph.vs)
+        random_edge_graph = igraph.Graph(directed=False)
+        for i in range(self.number_of_bboxes):
+            random_edge_graph.add_vertices(1)
+        total_edges = len(graph.get_edgelist())
+        number_of_random_edges_to_create = int((total_edges * percentage) / 100)
+        edges = []
+        while number_of_random_edges_to_create > 0:
+            x, y = random.randint(0, self.number_of_bboxes), random.randint(0, self.number_of_bboxes)
+            if (x, y) not in edges:
+                edges.append((x, y))
+                number_of_random_edges_to_create = number_of_random_edges_to_create - 1
+            else:
+                pass
+        random_edge_graph.add_edges(edges)
+        return random_edge_graph.get_edgelist()
 
-class DataCreation(object):
-    def __init__(self, dataset, extractor, pooling, train_set_percentage, test_set_percentage, walk, k_fold_split=True, number_of_sets=5):
-        self.dataset = dataset  # [VRD, MIT67, UNREL]
-        self.extractor = extractor # [Pre trained methods]
-        self.pooling = pooling
-        self.train_set_percentage = train_set_percentage
-        self.test_set_percentage = test_set_percentage
-        self.k_fold_split = k_fold_split
-        self.number_of_sets = number_of_sets
-        self.random_walk_step = walk
 
 class BoundingBox(object):
     '''
