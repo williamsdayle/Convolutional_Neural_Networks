@@ -12,13 +12,14 @@ class RandomWalkGraph(object):
         self.cutted_edges = 0
         self.number_of_bboxes = 0
 
-    def image_cluster_random_walk_connection(self, image, number_of_clusters):
+    def image_cluster_random_walk_connection(self, image, number_of_clusters, cluster_radius):
         """
         This method takes an image I and create T clusters (circles) on it
         All the bounding boxes in this cluster will be connected used X randon walks
 
         :param image
         :param number_of_clusters
+        :param cluster_radius
 
         return graph with random_walk_image_cluster_connection
         """
