@@ -12,12 +12,28 @@ class RandomWalkGraph(object):
         self.cutted_edges = 0
         self.number_of_bboxes = 0
 
-    def central_bias_random_walk(self, graph, radius):
-        # This method uses the radius to maintain the edges, using a full connected as start
+    def image_cluster_random_walk_connection(self, image, number_of_clusters):
+        """
+        This method takes an image I and create T clusters (circles) on it
+        All the bounding boxes in this cluster will be connected used X randon walks
+
+        :param image
+        :param number_of_clusters
+
+        return graph with random_walk_image_cluster_connection
+        """
         pass
 
-    def weighted_random_walk(self, graph, threshold):
-        # This method uses the weighted edges and a threshold to maintain the edges insied the TH value
+    def weighted_random_walk(self, graph, weights, threshold):
+        """
+        This method takes a graph G` and walk X random walks inside this graph
+        The edges that are equal of bigger than the threshold will be cutted
+
+        :param weights
+        :param threshold
+
+        return weighted_random_walk_graph
+        """
         pass
 
     def classic_random_walk(self, graph, weights):        
@@ -54,8 +70,17 @@ class RandomWalkGraph(object):
         return rdg.get_edgelist()
 
     def graph_with_random_cut(self, graph):
-        # This method returns the graph using a random cut method, the set of edges will be created randomly
-        # This method uses the optimized graph to create another one with random edges created
+        '''
+        This method is used side-by-side with the classic random walk
+        Using this method we want to prove that the random walk method uses some contextual information to work
+
+        This method takes a graph G` and cuts the edges in random way
+        The number of edges cutted has to be the same as the classic random walk
+
+        :param graph:
+
+        return random_cut_graph
+        '''
         
         full_connected_edges = graph.get_edgelist()
         rdc = igraph.Graph(directed=False)
@@ -75,7 +100,16 @@ class RandomWalkGraph(object):
         return rdc.get_edgelist()
 
     def random_edge_creation(self, graph, percentage):
-        # This method we create a graph with random edges created, the percentage value will be the edge creation value maintain
+        '''
+        This method creates a graph with random edges
+        The percentage value is the number of edges that must be created
+
+        :param graph
+        :param percentage
+        
+        
+        :return random_edge_creation
+        '''
         self.number_of_bboxes = len(graph.vs)
         random_edge_graph = igraph.Graph(directed=False)
         for i in range(self.number_of_bboxes):
