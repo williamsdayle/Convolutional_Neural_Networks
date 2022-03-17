@@ -1,4 +1,6 @@
+from email.mime import base
 import natsort
+import glob
 import numpy as np
 import os
 import pickle
@@ -29,6 +31,8 @@ import matplotlib
 import os
 from tqdm import tqdm
 
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+
 
 print("------------PACKAGES - VERSIONS------------")
 print("numpy version: %s" % np.__version__)
@@ -36,6 +40,7 @@ print("tensorflow version: %s" % tf.__version__)
 print("pickle version: %s" % pickle.format_version)
 print("keras version: %s" % tf.keras.__version__)
 print("matplotlib version: %s" % matplotlib.__version__)
+print("BASE DIR {}".format(BASE_DIR))
 print("-------------------------------------------")
 
 
@@ -133,15 +138,18 @@ if __name__ == '__main__':
 
     models = ['VGG16', 'ResNet50', 'InceptionV3', 'InceptionResNetV2', 'Xception', 'EfficientNet']
 
-    DATASETS = ['UNREL', 'MIT67', 'VRD']
+    DATASETS = ['UNREL', 'MIT67', "MALARIA"]
 
     for DATASET in DATASETS:
 
         for model_ in models:
 
             model_name = model_
-            src_path = 'bounding_boxes/{}-dataset/images'.format(DATASET.lower())
-            dst_path = os.path.join('feature_files_avg/{}'.format(DATASET), model_name)
+            base_path = os.path.join(BASE_DIR, "examples")
+            src_path = os.path.join(base_path, DATASET)
+            base_dst_path = os.path.join(BASE_DIR, "feature_files_avg")
+            data_set_dst_path = os.path.join(base_dst_path, DATASET)
+            dst_path = os.path.join(data_set_dst_path, model_)
 
             if os.path.isdir(dst_path):
                 pass
