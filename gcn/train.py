@@ -342,7 +342,7 @@ if __name__ == '__main__':
 
     walks = [i for i in range(11)]
 
-    models = ['Xception']
+    models = ['VGG16']
 
     lrs = [0.01, 0.05, 0.001, 0.005]
 
