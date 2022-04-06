@@ -6,7 +6,7 @@ import shutil as sh
 
 def move_data_for_train_and_test(dataset, fold):
 
-    image_dir = 'bounding_boxes/{}-dataset/images'.format(dataset.lower())
+    image_dir = 'examples/{}'.format(dataset)
 
     fold_dir = 'data/{}/fold_{}'.format(dataset, fold)
 

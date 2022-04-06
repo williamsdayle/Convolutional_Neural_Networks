@@ -1,7 +1,6 @@
 import pickle as pk
 import time
 import os
-from igraph.clustering import Dendrogram
 import numpy as np
 import pandas as pd
 import igraph
@@ -9,10 +8,8 @@ from scipy.sparse import csr_matrix
 from collections import defaultdict
 from tqdm import tqdm
 import random
-import scipy.sparse as sp
 import traceback
 from scipy.spatial import distance
-import sys
 import argparse
 
 class BoundingBox(object):

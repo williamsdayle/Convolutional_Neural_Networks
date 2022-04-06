@@ -9,10 +9,9 @@ class RandomWalkGraph(object):
         # the number of nodes has to be the same as the number of objects in the image
         # the first graph will be fully connected
         self.walk = walk
-        self.cutted_edges = 0
         self.number_of_bboxes = 0
 
-    def image_cluster_random_walk_connection(self, image, number_of_clusters, cluster_radius):
+    def image_cluster_random_walk_connection(self, image, cluster_radius, cutted_edges):
         """
         This method takes an image I and create T clusters (circles) on it
         All the bounding boxes in this cluster will be connected used X randon walks
@@ -23,9 +22,9 @@ class RandomWalkGraph(object):
 
         return graph with random_walk_image_cluster_connection
         """
-        pass
+        return [(0,0)]
 
-    def weighted_random_walk(self, graph, weights, threshold):
+    def weighted_random_walk(self, graph, weights, threshold, cutted_edges):
         """
         This method takes a graph G` and walk X random walks inside this graph
         The edges that are equal of bigger than the threshold will be cutted
@@ -35,7 +34,7 @@ class RandomWalkGraph(object):
 
         return weighted_random_walk_graph
         """
-        pass
+        return [(0,0)]
 
     def classic_random_walk(self, graph, weights):        
         '''
@@ -48,7 +47,7 @@ class RandomWalkGraph(object):
         :return:
         '''
         self.number_of_bboxes = len(graph.vs)
-        dendrogram = graph.community_walktrap(weights=weights, steps=self.step)
+        dendrogram = graph.community_walktrap(weights=weights, steps=self.walk)
         edges = []
         if self.number_of_bboxes > 3:
             for i in range(self.number_of_bboxes):
@@ -67,10 +66,10 @@ class RandomWalkGraph(object):
         rdg.add_edges(edges)
         full_connected_edges = graph.get_edgelist()
         random_walk_edges_size = len(rdg.get_edgelist())
-        self.cutted_edges = len(full_connected_edges) - random_walk_edges_size
-        return rdg.get_edgelist()
+        cutted_edges = len(full_connected_edges) - random_walk_edges_size
+        return rdg.get_edgelist(), cutted_edges
 
-    def graph_with_random_cut(self, graph):
+    def graph_with_random_cut(self, graph, cutted_edges):
         '''
         This method is used side-by-side with the classic random walk
         Using this method we want to prove that the random walk method uses some contextual information to work
@@ -79,6 +78,7 @@ class RandomWalkGraph(object):
         The number of edges cutted has to be the same as the classic random walk
 
         :param graph:
+        :param cutted_edges
 
         return random_cut_graph
         '''
@@ -88,11 +88,12 @@ class RandomWalkGraph(object):
         for i in range(self.number_of_bboxes):
             rdc.add_vertices(1)
         full_connected_updated = len(full_connected_edges)
-        while self.cutted_edges > 0:
+        edges_to_cut = cutted_edges
+        while edges_to_cut > 0:
             position = random.randint(0, full_connected_updated - 1)
             source, target = full_connected_edges[position]
             if source != target:
-                self.cutted_edges = self.cutted_edges - 1
+                edges_to_cut = edges_to_cut - 1
                 del full_connected_edges[position]
             else:
                 pass
@@ -100,14 +101,12 @@ class RandomWalkGraph(object):
         rdc.add_edges(full_connected_edges)
         return rdc.get_edgelist()
 
-    def random_edge_creation(self, graph, percentage):
+    def random_edge_creation(self, graph, cutted_edges):
         '''
         This method creates a graph with random edges
-        The percentage value is the number of edges that must be created
 
         :param graph
-        :param percentage
-        
+        :param cutted_edges
         
         :return random_edge_creation
         '''
@@ -115,18 +114,20 @@ class RandomWalkGraph(object):
         random_edge_graph = igraph.Graph(directed=False)
         for i in range(self.number_of_bboxes):
             random_edge_graph.add_vertices(1)
-        total_edges = len(graph.get_edgelist())
-        number_of_random_edges_to_create = int((total_edges * percentage) / 100)
         edges = []
-        while number_of_random_edges_to_create > 0:
-            x, y = random.randint(0, self.number_of_bboxes), random.randint(0, self.number_of_bboxes)
-            if (x, y) not in edges:
+        if cutted_edges == 0:
+            for i in range(self.number_of_bboxes):
+                edges.append((i, i))
+            random_edge_graph.add_edges(edges)
+            return random_edge_graph.get_edgelist()
+        else:
+            number_of_random_edges_to_create = cutted_edges
+            while number_of_random_edges_to_create > 0:
+                x, y = random.randint(0, self.number_of_bboxes - 1), random.randint(0, self.number_of_bboxes - 1)
                 edges.append((x, y))
-                number_of_random_edges_to_create = number_of_random_edges_to_create - 1
-            else:
-                pass
-        random_edge_graph.add_edges(edges)
-        return random_edge_graph.get_edgelist()
+                number_of_random_edges_to_create-=1
+            random_edge_graph.add_edges(edges)
+            return random_edge_graph.get_edgelist()
 
 
 class BoundingBox(object):

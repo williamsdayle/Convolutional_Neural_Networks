@@ -63,7 +63,7 @@ class Utils(object):
             :return images : all images and their respect bounding boxes information:
         '''
 
-        metadata_file = 'config_arqs/{}_subclass_bboxes.txt'.format(DATASET.lower())
+        metadata_file = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/config_arqs/{}_subclass_bboxes.txt'.format(DATASET.lower())
 
         with open(metadata_file) as file:
 
@@ -119,7 +119,7 @@ class Utils(object):
 
         return images
 
-    def create_and_save_gcn_data(self, DATASET, EXTRACTOR, folds, FC, RW, RC, RANDOM_WALK_STEP):
+    def create_and_save_gcn_data(self, DATASET, EXTRACTOR, folds, FC, RW, RC, RWEC, ICRW, REC, RANDOM_WALK_STEP):
 
         for kfold_size in tqdm(range(len(folds))):
 
@@ -138,12 +138,19 @@ class Utils(object):
             gcn_graph_fc = self.create_pickle_file(FC)
             gcn_graph_rw = self.create_pickle_file(RW)
             gcn_graph_rc = self.create_pickle_file(RC)
+            gcn_graph_rwec = self.create_pickle_file(RWEC)
+            gcn_graph_icrw = self.create_pickle_file(ICRW)
+            gcn_graph_rec = self.create_pickle_file(REC)
+            
 
-            DST_PATH = 'gcn/data/{}'.format(DATASET)
+            DST_PATH = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/gcn/data/{}'.format(DATASET)
             self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_fc)
             self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rw, random_walk=True, step=RANDOM_WALK_STEP)
             self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rc, random_cut=True, step=RANDOM_WALK_STEP)
-
+            self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rwec, random_weighted=True, step=RANDOM_WALK_STEP)
+            self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_icrw, random_cluster=True, step=RANDOM_WALK_STEP)
+            self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rec, random_edge=True, step=RANDOM_WALK_STEP)
+               
     def create_data(self, DATASET, EXTRACTOR, POOLING, kfold, train, kfold_size=0):
         '''
         Here we create all the data for GCN, we based our model and intro files in the (KIPF; WELLING, 2016).
@@ -302,7 +309,7 @@ class Utils(object):
                     all_train_labels = []
                     all_test_labels = []
 
-                    path = 'feature_files_{}/{}/{}'.format(POOLING, DATASET, EXTRACTOR)
+                    path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/feature_files_{}/{}/{}'.format(POOLING, DATASET, EXTRACTOR)
 
                     labels = sorted(os.listdir(path=path))
 
@@ -396,11 +403,11 @@ class Utils(object):
                     df_train_labels = pd.DataFrame(all_train_labels, columns=['Labels'])
                     df_test_labels = pd.DataFrame(all_test_labels, columns=['Labels'])
 
-                    df_test_files.to_csv('benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET))
-                    df_train_files.to_csv('benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET))
+                    df_test_files.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET))
+                    df_train_files.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET))
 
-                    df_test_labels.to_csv('benchmarks/{}_{}_TEST_LABELS.csv'.format(fold_number, DATASET))
-                    df_train_labels.to_csv('benchmarks/{}_{}_TRAIN_LABELS.csv'.format(fold_number, DATASET))
+                    df_test_labels.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TEST_LABELS.csv'.format(fold_number, DATASET))
+                    df_train_labels.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TRAIN_LABELS.csv'.format(fold_number, DATASET))
 
                     x = np.array(x)
                     allx = np.array(allx)
@@ -446,7 +453,7 @@ class Utils(object):
         :return:
         '''
 
-        labels_path = 'bounding_boxes/{}-dataset/images'.format(DATASET.lower())
+        labels_path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/examples/{}'.format(DATASET)
 
         labels_of_the_dataset = sorted(os.listdir(labels_path))
 
@@ -454,7 +461,7 @@ class Utils(object):
         f.write(str(labels_of_the_dataset))
         f.close()
 
-    def create_graph_data(self, DATASET, EXTRACTOR, POOLING, images, RANDOM_WALK_STEP, OPTMIZATION_METHOD, radius = None, threshold = None, seed = None):
+    def create_graph_data(self, DATASET, EXTRACTOR, POOLING, images, RANDOM_WALK_STEP):
         '''
         In this method we created all our graph structure...
 
@@ -478,13 +485,19 @@ class Utils(object):
         full_connected_graph = igraph.Graph(directed=False)
         random_walk_graph = igraph.Graph(directed=False)
         random_cut_graph = igraph.Graph(directed=False)
-        global_graph = igraph.Graph(directed=False)
+        image_cluster_random_walk_graph = igraph.Graph(directed=False)
+        random_edge_creation_graph = igraph.Graph(directed=False)
+        random_weighted_edge_cut_graph = igraph.Graph(directed=False)
+        global_graph = igraph.Graph(directed=False)        
 
         random_walk_object = RandomWalkGraph(RANDOM_WALK_STEP)
 
         lst_fc = []
         lst_rw = []
         lst_rc = []
+        lst_rb = []
+        lst_r_clust = []
+        lst_r_th = []
 
 
         global_count = 0
@@ -496,6 +509,9 @@ class Utils(object):
             graph = igraph.Graph(directed=False)
             random_walk_graph_current = igraph.Graph(directed=False)
             random_cut_graph_current = igraph.Graph(directed=False)
+            weighted_random_walk_graph_current = igraph.Graph(directed=False)
+            image_cluster_random_walk_graph_current = igraph.Graph(directed=False)
+            random_edge_creation_graph_current = igraph.Graph(directed=False)
 
             columns, indexes = [], []
             weights_for_random_walk = []
@@ -507,26 +523,41 @@ class Utils(object):
                 random_walk_graph_current.add_vertices(1)  # random walk graph
                 random_cut_graph_current.add_vertices(1)  # random cut graph
                 global_graph.add_vertices(1)  # global graph for creation of other files
+                weighted_random_walk_graph_current.add_vertices(1) # to cut edges with a threshold
+                image_cluster_random_walk_graph_current.add_vertices(1) # this graph will contain image rois
+                random_edge_creation_graph_current.add_vertices(1) # this graph will contain edges created random
 
                 graph.vs[i]['image_name'] = image.image_name
                 global_graph.vs[global_count]['image_name'] = image.image_name
                 random_walk_graph_current.vs[i]['image_name'] = image.image_name
                 random_cut_graph_current.vs[i]['image_name'] = image.image_name
+                weighted_random_walk_graph_current.vs[i]['image_name'] = image.image_name
+                image_cluster_random_walk_graph_current.vs[i]['image_name'] = image.image_name
+                random_edge_creation_graph_current.vs[i]['image_name'] = image.image_name
 
                 graph.vs[i]['image_id'] = image.image_id
                 global_graph.vs[global_count]['image_id'] = image.image_id
                 random_walk_graph_current.vs[i]['image_id'] = image.image_id
                 random_cut_graph_current.vs[i]['image_id'] = image.image_id
+                weighted_random_walk_graph_current.vs[i]['image_id'] = image.image_id
+                image_cluster_random_walk_graph_current.vs[i]['image_id'] = image.image_id
+                random_edge_creation_graph_current.vs[i]['image_id'] = image.image_id
 
                 graph.vs[i]['image_label'] = image.image_label
                 global_graph.vs[global_count]['image_label'] = image.image_label
                 random_walk_graph_current.vs[i]['image_label'] = image.image_label
                 random_cut_graph_current.vs[i]['image_label'] = image.image_label
+                weighted_random_walk_graph_current.vs[i]['image_label'] = image.image_id
+                image_cluster_random_walk_graph_current.vs[i]['image_label'] = image.image_id
+                random_edge_creation_graph_current.vs[i]['image_label'] = image.image_id
 
                 graph.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                 global_graph.vs[global_count]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                 random_walk_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                 random_cut_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
+                weighted_random_walk_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
+                image_cluster_random_walk_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
+                random_edge_creation_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
 
                 bounding_box_current = image.list_of_bounding_boxes[i]
 
@@ -534,11 +565,18 @@ class Utils(object):
                 global_graph.vs[global_count]['bounding_box_id'] = bounding_box_current.bounding_box_id
                 random_walk_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
                 random_cut_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
+                weighted_random_walk_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
+                image_cluster_random_walk_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
+                random_edge_creation_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
+
 
                 graph.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
                 global_graph.vs[global_count]['bounding_box_label'] = bounding_box_current.bounding_box_label
                 random_walk_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
                 random_cut_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
+                weighted_random_walk_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
+                image_cluster_random_walk_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
+                random_edge_creation_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
 
                 column = str(image.image_id) + \
                         '_' + bounding_box_current.bounding_box_label + \
@@ -548,9 +586,9 @@ class Utils(object):
 
                 bounding_box_file = column + '.txt'
                 if POOLING == 'max':
-                    src_path = 'feature_files_max/{}/{}/{}'.format(DATASET, EXTRACTOR, image.image_label)
+                    src_path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/feature_files_max/{}/{}/{}'.format(DATASET, EXTRACTOR, image.image_label)
                 if POOLING == 'avg':
-                    src_path = 'feature_files_avg/{}/{}/{}'.format(DATASET, EXTRACTOR, image.image_label)
+                    src_path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/feature_files_avg/{}/{}/{}'.format(DATASET, EXTRACTOR, image.image_label)
                 path = os.path.join(src_path, bounding_box_file)
                 global_graph.vs[global_count]['bb_path'] = path
                 features = self.array_from_feature_file(path)
@@ -571,24 +609,36 @@ class Utils(object):
                 for feature_target in weights_for_random_walk:
                     weights.append(distance.euclidean(feature_source, feature_target))
 
-            random_walk_edges = random_walk_object.classic_random_walk(graph, weights)
-            random_cut_edges = random_walk_object.graph_with_random_cut(graph)
-
+            random_walk_edges, cutted_edges = random_walk_object.classic_random_walk(graph, weights)
+            random_cut_edges = random_walk_object.graph_with_random_cut(graph, cutted_edges)
+            image_cluster_random_walk_edges = random_walk_object.image_cluster_random_walk_connection(image, 1, cutted_edges)
+            random_creation_edges = random_walk_object.random_edge_creation(random_edge_creation_graph_current, cutted_edges)
+            weighted_random_walk_edges = random_walk_object.weighted_random_walk(weighted_random_walk_graph_current, weights, 60, cutted_edges)
             random_walk_graph_current.add_edges(
                 random_walk_edges)  # inserting all edges in the graph, this is the random walk edges
+            
             random_cut_graph_current.add_edges(
                 random_cut_edges)  # inserting all edges in the graph, this is the random cut edges
+            
+            weighted_random_walk_graph_current.add_edges(
+                weighted_random_walk_edges)  # inserting all edges in the graph, this is the random walk weighted edges
+            
+            random_edge_creation_graph_current.add_edges(
+                random_creation_edges)  # inserting all edges in the graph, this is the random creation edges
+            
+            image_cluster_random_walk_graph_current.add_edges(
+                image_cluster_random_walk_edges)  # inserting all edges in the graph, this is the random cluster creation edges
 
             image_adjacency_matrix_fc = graph.get_adjacency()
             image_data_frame_fc = pd.DataFrame(image_adjacency_matrix_fc, columns=columns, index=indexes)
 
             image_data_frame_fc.to_csv(
-                'dataframes/{}/FULL CONNECTED/{}.csv'.format(DATASET, image.image_name.replace('.jpg', '')))
+                '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/FULL CONNECTED/{}.csv'.format(DATASET, image.image_name.replace('.jpg', '')))
 
             image_adjacency_matrix_rw = random_walk_graph_current.get_adjacency()
             image_data_frame_rw = pd.DataFrame(image_adjacency_matrix_rw, columns=columns, index=indexes)
 
-            image_data_frame_rw.to_csv('dataframes/{}/RANDOM WALK/{}_{}_{}.csv'.format(DATASET,
+            image_data_frame_rw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WALK/{}_{}_{}.csv'.format(DATASET,
                                                                                     image.image_name.replace('.jpg',
                                                                                                                 ''),
                                                                                     RANDOM_WALK_STEP,
@@ -597,15 +647,48 @@ class Utils(object):
             image_adjacency_matrix_rc = random_cut_graph_current.get_adjacency()
             image_data_frame_rc = pd.DataFrame(image_adjacency_matrix_rc, columns=columns, index=indexes)
 
-            image_data_frame_rc.to_csv('dataframes/{}/RANDOM CUT/{}_{}_{}.csv'.format(DATASET,
+            image_data_frame_rc.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CUT/{}_{}_{}.csv'.format(DATASET,
                                                                                     image.image_name.replace('.jpg',
                                                                                                             ''),
                                                                                     RANDOM_WALK_STEP,
                                                                                     EXTRACTOR))
+            
+            
+            image_adjacency_matrix_rcw = weighted_random_walk_graph_current.get_adjacency()
+            image_data_frame_rcw = pd.DataFrame(image_adjacency_matrix_rcw, columns=columns, index=indexes)
+
+            image_data_frame_rcw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WEIGHT/{}_{}_{}.csv'.format(DATASET,
+                                                                                    image.image_name.replace('.jpg',
+                                                                                                            ''),
+                                                                                    RANDOM_WALK_STEP,
+                                                                                    EXTRACTOR))
+            
+            
+            image_adjacency_matrix_rec = random_edge_creation_graph_current.get_adjacency()
+            image_data_frame_rec = pd.DataFrame(image_adjacency_matrix_rec, columns=columns, index=indexes)
+
+            image_data_frame_rec.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CREATION/{}_{}_{}.csv'.format(DATASET,
+                                                                                    image.image_name.replace('.jpg',
+                                                                                                            ''),
+                                                                                    RANDOM_WALK_STEP,
+                                                                                    EXTRACTOR))
+            
+            
+            image_adjacency_matrix_rcc = image_cluster_random_walk_graph_current.get_adjacency()
+            image_data_frame_rcc = pd.DataFrame(image_adjacency_matrix_rcc, columns=columns, index=indexes)
+
+            image_data_frame_rcc.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CLUSTER/{}_{}_{}.csv'.format(DATASET,
+                                                                                    image.image_name.replace('.jpg',
+                                                                                                            ''),
+                                                                                    RANDOM_WALK_STEP,
+                                                                                    EXTRACTOR))
+            
             lst_fc.append(graph)
             lst_rc.append(random_cut_graph_current)
             lst_rw.append(random_walk_graph_current)
-
+            lst_rb.append(random_edge_creation_graph_current)
+            lst_r_clust.append(weighted_random_walk_graph_current)
+            lst_r_th.append(weighted_random_walk_graph_current)
             # full_connected_graph = full_connected_graph + graph
             # random_walk_graph = random_walk_graph + random_walk_graph_current
             # random_cut_graph = random_cut_graph + random_cut_graph_current
@@ -630,12 +713,42 @@ class Utils(object):
         rc_stop = time.time()
 
         rc_build_time = rc_stop - rc_start
+        
+        rweighted_start = time.time()
+        for g, index in zip(lst_rc, tqdm(range(len(lst_r_th)))):
+            random_weighted_edge_cut_graph = igraph.Graph.disjoint_union(random_weighted_edge_cut_graph, g)
+        rweighted_stop = time.time()
+
+        rwg_build_time = rweighted_stop - rweighted_start
+        
+        rcluster_start = time.time()
+        for g, index in zip(lst_rc, tqdm(range(len(lst_r_clust)))):
+            image_cluster_random_walk_graph = igraph.Graph.disjoint_union(image_cluster_random_walk_graph, g)
+        rcluster_stop = time.time()
+
+        image_cluster_build_time = rcluster_stop - rcluster_start
+        
+        rb_start = time.time()
+        for g, index in zip(lst_rc, tqdm(range(len(lst_rb)))):
+            random_edge_creation_graph = igraph.Graph.disjoint_union(random_edge_creation_graph, g)
+        rb_stop = time.time()
+
+        rb_build_time = rb_start - rb_stop
 
         print('Full Connected Graph', full_connected_graph.summary(), 'process time:', fc_build_time)
+        print()
         print('Random Walk {} Graph'.format(RANDOM_WALK_STEP), random_walk_graph.summary(), 'process time:', rw_build_time)
+        print()
         print('Random Cut {} Graph'.format(RANDOM_WALK_STEP), random_cut_graph.summary(), 'process time:', rc_build_time)
-
-        return full_connected_graph, random_walk_graph, random_cut_graph, fc_build_time, rw_build_time, rc_build_time
+        print()
+        print('Random Edge Cut Weighted Graph {}'.format(RANDOM_WALK_STEP), random_weighted_edge_cut_graph.summary(), 'process time:', rwg_build_time)
+        print()
+        print('Random Cluster Creation {} Graph'.format(RANDOM_WALK_STEP), image_cluster_random_walk_graph.summary(), 'process time:', image_cluster_build_time)
+        print()
+        print('Random Edge Choiced {} Graph'.format(RANDOM_WALK_STEP), random_edge_creation_graph.summary(), 'process time:', rb_build_time)
+        
+        
+        return full_connected_graph, random_walk_graph, random_cut_graph, random_weighted_edge_cut_graph, image_cluster_random_walk_graph, random_edge_creation_graph, fc_build_time, rw_build_time, rc_build_time, rwg_build_time, image_cluster_build_time, rb_build_time
 
     def create_pickle_file(self, graph):
 
@@ -671,7 +784,7 @@ class Utils(object):
         :return label index:
         '''
 
-        labels_path = 'bounding_boxes/{}-dataset/images'.format(DATASET.lower())
+        labels_path = "/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/examples/{}/".format(DATASET)
 
         label_index = 0
 
@@ -684,85 +797,6 @@ class Utils(object):
                 label_index = index
 
         return label_index
-
-    # def get_random_walk_and_random_cut_edges(self, g, weights, step):
-
-    #     '''
-    #     This method builds the Random Walk and Random Cut graphs, using the euclidean distance introduced as weights param.
-    #     We used the Computing Communities in Large Networks Using Random Walks approach, with the igraph lib.
-
-    #     :param g:
-    #     :param weights:
-    #     :param step:
-    #     :return:
-    #     '''
-
-    #     bb = len(g.vs)    
-
-    #     dendrogram = g.community_walktrap(weights=weights, steps=step)
-
-    #     edges = []
-
-    #     if bb > 3:
-
-    #         for i in range(bb):
-    #             edges.append((i, i))
-
-    #         clusters = dendrogram.as_clustering(n=dendrogram.optimal_count)  # or clusters = dendrogram.as_clustering(n=len(dendrogram.merges))        
-
-    #         for cluster, index_clust in zip(clusters, range(len(clusters))):
-
-    #             for node in cluster:
-
-    #                 edge = (index_clust, node)
-
-    #                 if edge not in edges:
-
-    #                     edges.append(edge)
-
-    #     else:
-
-    #         edges = g.get_edgelist()
-
-    #     rdc = igraph.Graph(directed=False)
-    #     rdg = igraph.Graph(directed=False)
-
-    #     for i in range(bb):
-    #         rdc.add_vertices(1)
-    #         rdg.add_vertices(1)
-
-    #     rdg.add_edges(edges)
-
-    #     full_connected_edges = g.get_edgelist()
-
-    #     random_walk_edges_size = len(rdg.get_edgelist())
-
-    #     full_connected_edges_size = len(g.get_edgelist())
-
-    #     cutted_edges = full_connected_edges_size - random_walk_edges_size
-
-    #     full_connected_uptaded = len(full_connected_edges)
-
-    #     while cutted_edges > 0:
-
-    #         position = random.randint(0, full_connected_uptaded - 1)
-
-    #         source, target = full_connected_edges[position]
-
-    #         if source != target:
-
-    #             cutted_edges = cutted_edges - 1
-    #             del full_connected_edges[position]
-
-    #         else:
-    #             pass
-
-    #         full_connected_uptaded = len(full_connected_edges)
-    #         # print('Full Size', full_connected_uptaded)
-
-    #     rdc.add_edges(full_connected_edges)
-
-    #     return rdg.get_edgelist(), rdc.get_edgelist()
 
     def remove_repetidos(self, lista):
         l = []
@@ -784,7 +818,7 @@ class Utils(object):
 
         return dict_graph
 
-    def save(self, model_name, dst_path, fold, x, tx, allx, y, ty, ally, test_indexes, graph, random_walk=False, random_cut=False, step=None):
+    def save(self, model_name, dst_path, fold, x, tx, allx, y, ty, ally, test_indexes, graph, random_walk=False, random_cluster=False, random_edge=False, random_weighted=False, random_cut=False, step=None):
 
         '''
         Here we save all data in pickle format.
@@ -806,8 +840,77 @@ class Utils(object):
         :param step:
         :return:
         '''
-        try:
-            if random_walk:
+        try:            
+            if random_cluster:
+                pk.dump(x,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.x".format(model_name, fold, step+20)), "wb"), protocol=2)
+                pk.dump(tx,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.tx".format(model_name, fold, step+20)), "wb"), protocol=2)
+                pk.dump(allx,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.allx".format(model_name, fold, step+20)),
+                            "wb"), protocol=2)
+                pk.dump(y,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.y".format(model_name, fold, step+20)), "wb"), protocol=2)
+                pk.dump(ty,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ty".format(model_name, fold, step+20)), "wb"), protocol=2)
+                pk.dump(ally,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ally".format(model_name, fold, step+20)),
+                            "wb"), protocol=2)
+                pk.dump(graph,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.graph".format(model_name, fold, step+20)),
+                            "wb"), protocol=2)
+
+                with open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.test.index".format(model_name, fold, step+20)),
+                        "w") as indexes:
+                    indexes.write(str(test_indexes).replace(",", "\n").replace("[", "").replace("]", "").replace(" ", ""))
+            
+            elif random_edge:
+                pk.dump(x,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.x".format(model_name, fold, step+30)), "wb"), protocol=2)
+                pk.dump(tx,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.tx".format(model_name, fold, step+30)), "wb"), protocol=2)
+                pk.dump(allx,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.allx".format(model_name, fold, step+30)),
+                            "wb"), protocol=2)
+                pk.dump(y,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.y".format(model_name, fold, step+30)), "wb"), protocol=2)
+                pk.dump(ty,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ty".format(model_name, fold, step+30)), "wb"), protocol=2)
+                pk.dump(ally,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ally".format(model_name, fold, step+30)),
+                            "wb"), protocol=2)
+                pk.dump(graph,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.graph".format(model_name, fold, step+30)),
+                            "wb"), protocol=2)
+
+                with open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.test.index".format(model_name, fold, step+30)),
+                        "w") as indexes:
+                    indexes.write(str(test_indexes).replace(",", "\n").replace("[", "").replace("]", "").replace(" ", ""))
+            
+            elif random_weighted:
+                pk.dump(x,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.x".format(model_name, fold, step+40)), "wb"), protocol=2)
+                pk.dump(tx,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.tx".format(model_name, fold, step+40)), "wb"), protocol=2)
+                pk.dump(allx,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.allx".format(model_name, fold, step+40)),
+                            "wb"), protocol=2)
+                pk.dump(y,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.y".format(model_name, fold, step+40)), "wb"), protocol=2)
+                pk.dump(ty,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ty".format(model_name, fold, step+40)), "wb"), protocol=2)
+                pk.dump(ally,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ally".format(model_name, fold, step+40)),
+                            "wb"), protocol=2)
+                pk.dump(graph,
+                        open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.graph".format(model_name, fold, step+40)),
+                            "wb"), protocol=2)
+
+                with open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.test.index".format(model_name, fold, step+40)),
+                        "w") as indexes:
+                    indexes.write(str(test_indexes).replace(",", "\n").replace("[", "").replace("]", "").replace(" ", ""))
+            
+            elif random_walk:
                 pk.dump(x,
                         open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.x".format(model_name, fold, step)), "wb"), protocol=2)
                 pk.dump(tx,
@@ -833,29 +936,30 @@ class Utils(object):
             elif random_cut:
 
                 pk.dump(x, open(
-                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.x".format(model_name, fold + 10, step + 10)), "wb"), protocol=2)
+                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.x".format(model_name, fold, step + 10)), "wb"), protocol=2)
                 pk.dump(tx, open(
-                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.tx".format(model_name, fold + 10, step + 10)),
+                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.tx".format(model_name, fold, step + 10)),
                     "wb"), protocol=2)
                 pk.dump(allx, open(
-                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.allx".format(model_name, fold + 10, step + 10)),
+                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.allx".format(model_name, fold, step + 10)),
                     "wb"), protocol=2)
                 pk.dump(y, open(
-                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.y".format(model_name, fold + 10, step + 10)), "wb"), protocol=2)
+                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.y".format(model_name, fold, step + 10)), "wb"), protocol=2)
                 pk.dump(ty, open(
-                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ty".format(model_name, fold + 10, step + 10)),
+                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ty".format(model_name, fold, step + 10)),
                     "wb"), protocol=2)
                 pk.dump(ally, open(
-                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ally".format(model_name, fold + 10, step + 10)),
+                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.ally".format(model_name, fold, step + 10)),
                     "wb"), protocol=2)
                 pk.dump(graph, open(
-                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.graph".format(model_name, fold + 10, step + 10)),
+                    os.path.join(dst_path, "ind.mine_{}_conj_{}_step_{}.graph".format(model_name, fold, step + 10)),
                     "wb"), protocol=2)
 
                 with open(os.path.join(dst_path,
-                                    "ind.mine_{}_conj_{}_step_{}.test.index".format(model_name, fold + 10, step + 10)),
+                                    "ind.mine_{}_conj_{}_step_{}.test.index".format(model_name, fold, step + 10)),
                         "w") as indexes:
                     indexes.write(str(test_indexes).replace(",", "\n").replace("[", "").replace("]", "").replace(" ", ""))
+            
             else:
 
                 pk.dump(x, open(os.path.join(dst_path, "ind.mine_{}_conj_{}_step_0.x".format(model_name, fold)), "wb"), protocol=2)
@@ -882,7 +986,7 @@ class Utils(object):
 
         if walk == None:
 
-            path = 'connections/{}/Full_Connected.txt'.format(DATASET)
+            path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/connections/{}/Full_Connected.txt'.format(DATASET)
 
             file = open(path, 'w')
 
@@ -892,7 +996,7 @@ class Utils(object):
 
         else:
 
-            path = 'connections/{}/{}_{}_{}.txt'.format(DATASET, type, EXTRACTOR, walk)
+            path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/connections/{}/{}_{}_{}.txt'.format(DATASET, type, EXTRACTOR, walk)
 
             file = open(path, 'w')
 
@@ -900,7 +1004,7 @@ class Utils(object):
 
             file.close()
 
-    def save_process_time(self, DATASET, FC_TIME, RW_TIME, RC_TIME, WALK, MODEL):
+    def save_process_time(self, DATASET, FC_TIME, RW_TIME, RC_TIME, R_CLUSTER_TIME, R_EDGE_TIME, R_WEIGHTED_TIME, WALK, MODEL):
 
         ##########################
         #
@@ -908,7 +1012,7 @@ class Utils(object):
         #
         ##########################
 
-        path = 'process_time/{}/Full Connected Time {}.txt'.format(DATASET, MODEL)
+        path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/process_time/{}/Full Connected Time {}.txt'.format(DATASET, MODEL)
 
         file = open(path, 'w')
 
@@ -922,7 +1026,7 @@ class Utils(object):
         #
         ##########################
 
-        path = 'process_time/{}/Random Walk {} Time {}.txt'.format(DATASET, WALK, MODEL)
+        path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/process_time/{}/Random Walk {} Time {}.txt'.format(DATASET, WALK, MODEL)
 
         file = open(path, 'w')
 
@@ -936,11 +1040,53 @@ class Utils(object):
         #
         ##########################
 
-        path = 'process_time/{}/Random Cut {} Time {}.txt'.format(DATASET, WALK, MODEL)
+        path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/process_time/{}/Random Cut {} Time {}.txt'.format(DATASET, WALK, MODEL)
 
         file = open(path, 'w')
 
         file.write('Process Time: ' + str(RC_TIME) + '\n')
+
+        file.close()
+        
+        ##########################
+        #
+        # Saving Random Weighted time process
+        #
+        ##########################
+
+        path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/process_time/{}/Random Weighted {} Time {}.txt'.format(DATASET, WALK, MODEL)
+
+        file = open(path, 'w')
+
+        file.write('Process Time: ' + str(R_WEIGHTED_TIME) + '\n')
+
+        file.close()
+        
+        ##########################
+        #
+        # Saving Random Edge time process
+        #
+        ##########################
+
+        path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/process_time/{}/Random Edge {} Time {}.txt'.format(DATASET, WALK, MODEL)
+
+        file = open(path, 'w')
+
+        file.write('Process Time: ' + str(R_EDGE_TIME) + '\n')
+
+        file.close()
+        
+        ##########################
+        #
+        # Saving Random Cluster time process
+        #
+        ##########################
+
+        path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/process_time/{}/Random Cluster {} Time {}.txt'.format(DATASET, WALK, MODEL)
+
+        file = open(path, 'w')
+
+        file.write('Process Time: ' + str(R_CLUSTER_TIME) + '\n')
 
         file.close()
 
