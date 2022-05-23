@@ -26,9 +26,10 @@ class Utils(object):
         '''
         feature_vector = []
 
-        with open(file_path, "r") as file:
+        try:
+            with open(file_path, "r") as file:
 
-            features = file.read()
+                features = file.read()
 
             lst_features = features.split(",")
 
@@ -49,6 +50,8 @@ class Utils(object):
                 if (count == dim):
                     feature_vector = np.asarray(feature_vector)
                     break
+        except:
+            feature_vector = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
         return feature_vector
 
@@ -63,7 +66,7 @@ class Utils(object):
             :return images : all images and their respect bounding boxes information:
         '''
 
-        metadata_file = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/config_arqs/{}_subclass_bboxes.txt'.format(DATASET.lower())
+        metadata_file = 'random_walk/config_arqs/{}_subclass_bboxes.txt'.format(DATASET.lower())
 
         with open(metadata_file) as file:
 
@@ -452,8 +455,7 @@ class Utils(object):
         :param DATASET:
         :return:
         '''
-
-        labels_path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/examples/{}'.format(DATASET)
+        labels_path = "/src/examples/{}".format(DATASET)
 
         labels_of_the_dataset = sorted(os.listdir(labels_path))
 
@@ -612,8 +614,16 @@ class Utils(object):
             random_walk_edges, cutted_edges = random_walk_object.classic_random_walk(graph, weights)
             random_cut_edges = random_walk_object.graph_with_random_cut(graph, cutted_edges)
             image_cluster_random_walk_edges = random_walk_object.image_cluster_random_walk_connection(image, 1, cutted_edges)
-            random_creation_edges = random_walk_object.random_edge_creation(random_edge_creation_graph_current, cutted_edges)
+            random_creation_edges = random_walk_object.random_edge_creation(graph, cutted_edges)
             weighted_random_walk_edges = random_walk_object.weighted_random_walk(weighted_random_walk_graph_current, weights, 60, cutted_edges)
+            print("FC Edges", graph.get_edgelist())
+            print("Random Walk Edges", random_walk_edges)
+            print("Random Cut Edges", random_cut_edges)
+            print("Image Cluster Edges", image_cluster_random_walk_edges)
+            print("Random Creation Edges", random_creation_edges)
+            print("Weighted Walk Edges", weighted_random_walk_edges)
+
+            
             random_walk_graph_current.add_edges(
                 random_walk_edges)  # inserting all edges in the graph, this is the random walk edges
             
@@ -629,69 +639,66 @@ class Utils(object):
             image_cluster_random_walk_graph_current.add_edges(
                 image_cluster_random_walk_edges)  # inserting all edges in the graph, this is the random cluster creation edges
 
-            image_adjacency_matrix_fc = graph.get_adjacency()
-            image_data_frame_fc = pd.DataFrame(image_adjacency_matrix_fc, columns=columns, index=indexes)
+            # image_adjacency_matrix_fc = graph.get_adjacency()
+            # image_data_frame_fc = pd.DataFrame(image_adjacency_matrix_fc, columns=columns, index=indexes)
 
-            image_data_frame_fc.to_csv(
-                '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/FULL CONNECTED/{}.csv'.format(DATASET, image.image_name.replace('.jpg', '')))
+            # image_data_frame_fc.to_csv(
+            #     '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/FULL CONNECTED/{}.csv'.format(DATASET, image.image_name.replace('.jpg', '')))
 
-            image_adjacency_matrix_rw = random_walk_graph_current.get_adjacency()
-            image_data_frame_rw = pd.DataFrame(image_adjacency_matrix_rw, columns=columns, index=indexes)
+            # image_adjacency_matrix_rw = random_walk_graph_current.get_adjacency()
+            # image_data_frame_rw = pd.DataFrame(image_adjacency_matrix_rw, columns=columns, index=indexes)
 
-            image_data_frame_rw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WALK/{}_{}_{}.csv'.format(DATASET,
-                                                                                    image.image_name.replace('.jpg',
-                                                                                                                ''),
-                                                                                    RANDOM_WALK_STEP,
-                                                                                    EXTRACTOR))
+            # image_data_frame_rw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WALK/{}_{}_{}.csv'.format(DATASET,
+            #                                                                         image.image_name.replace('.jpg',
+            #                                                                                                     ''),
+            #                                                                         RANDOM_WALK_STEP,
+            #                                                                         EXTRACTOR))
 
-            image_adjacency_matrix_rc = random_cut_graph_current.get_adjacency()
-            image_data_frame_rc = pd.DataFrame(image_adjacency_matrix_rc, columns=columns, index=indexes)
+            # image_adjacency_matrix_rc = random_cut_graph_current.get_adjacency()
+            # image_data_frame_rc = pd.DataFrame(image_adjacency_matrix_rc, columns=columns, index=indexes)
 
-            image_data_frame_rc.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CUT/{}_{}_{}.csv'.format(DATASET,
-                                                                                    image.image_name.replace('.jpg',
-                                                                                                            ''),
-                                                                                    RANDOM_WALK_STEP,
-                                                                                    EXTRACTOR))
+            # image_data_frame_rc.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CUT/{}_{}_{}.csv'.format(DATASET,
+            #                                                                         image.image_name.replace('.jpg',
+            #                                                                                                 ''),
+            #                                                                         RANDOM_WALK_STEP,
+            #                                                                         EXTRACTOR))
             
             
-            image_adjacency_matrix_rcw = weighted_random_walk_graph_current.get_adjacency()
-            image_data_frame_rcw = pd.DataFrame(image_adjacency_matrix_rcw, columns=columns, index=indexes)
+            # image_adjacency_matrix_rcw = weighted_random_walk_graph_current.get_adjacency()
+            # image_data_frame_rcw = pd.DataFrame(image_adjacency_matrix_rcw, columns=columns, index=indexes)
 
-            image_data_frame_rcw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WEIGHT/{}_{}_{}.csv'.format(DATASET,
-                                                                                    image.image_name.replace('.jpg',
-                                                                                                            ''),
-                                                                                    RANDOM_WALK_STEP,
-                                                                                    EXTRACTOR))
+            # image_data_frame_rcw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WEIGHT/{}_{}_{}.csv'.format(DATASET,
+            #                                                                         image.image_name.replace('.jpg',
+            #                                                                                                 ''),
+            #                                                                         RANDOM_WALK_STEP,
+            #                                                                         EXTRACTOR))
             
             
-            image_adjacency_matrix_rec = random_edge_creation_graph_current.get_adjacency()
-            image_data_frame_rec = pd.DataFrame(image_adjacency_matrix_rec, columns=columns, index=indexes)
+            # image_adjacency_matrix_rec = random_edge_creation_graph_current.get_adjacency()
+            # image_data_frame_rec = pd.DataFrame(image_adjacency_matrix_rec, columns=columns, index=indexes)
 
-            image_data_frame_rec.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CREATION/{}_{}_{}.csv'.format(DATASET,
-                                                                                    image.image_name.replace('.jpg',
-                                                                                                            ''),
-                                                                                    RANDOM_WALK_STEP,
-                                                                                    EXTRACTOR))
+            # image_data_frame_rec.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CREATION/{}_{}_{}.csv'.format(DATASET,
+            #                                                                         image.image_name.replace('.jpg',
+            #                                                                                                 ''),
+            #                                                                         RANDOM_WALK_STEP,
+            #                                                                         EXTRACTOR))
             
             
-            image_adjacency_matrix_rcc = image_cluster_random_walk_graph_current.get_adjacency()
-            image_data_frame_rcc = pd.DataFrame(image_adjacency_matrix_rcc, columns=columns, index=indexes)
+            # image_adjacency_matrix_rcc = image_cluster_random_walk_graph_current.get_adjacency()
+            # image_data_frame_rcc = pd.DataFrame(image_adjacency_matrix_rcc, columns=columns, index=indexes)
 
-            image_data_frame_rcc.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CLUSTER/{}_{}_{}.csv'.format(DATASET,
-                                                                                    image.image_name.replace('.jpg',
-                                                                                                            ''),
-                                                                                    RANDOM_WALK_STEP,
-                                                                                    EXTRACTOR))
+            # image_data_frame_rcc.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CLUSTER/{}_{}_{}.csv'.format(DATASET,
+            #                                                                         image.image_name.replace('.jpg',
+            #                                                                                                 ''),
+            #                                                                         RANDOM_WALK_STEP,
+            #                                                                         EXTRACTOR))
             
-            lst_fc.append(graph)
-            lst_rc.append(random_cut_graph_current)
-            lst_rw.append(random_walk_graph_current)
-            lst_rb.append(random_edge_creation_graph_current)
-            lst_r_clust.append(weighted_random_walk_graph_current)
-            lst_r_th.append(weighted_random_walk_graph_current)
-            # full_connected_graph = full_connected_graph + graph
-            # random_walk_graph = random_walk_graph + random_walk_graph_current
-            # random_cut_graph = random_cut_graph + random_cut_graph_current
+            # lst_fc.append(graph)
+            # lst_rc.append(random_cut_graph_current)
+            # lst_rw.append(random_walk_graph_current)
+            # lst_rb.append(random_edge_creation_graph_current)
+            # lst_r_clust.append(weighted_random_walk_graph_current)
+            # lst_r_th.append(weighted_random_walk_graph_current)
 
         fc_start = time.time()
         for g, index in zip(lst_fc, tqdm(range(len(lst_fc)))):

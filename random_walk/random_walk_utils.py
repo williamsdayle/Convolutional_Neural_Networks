@@ -115,13 +115,10 @@ class RandomWalkGraph(object):
         for i in range(self.number_of_bboxes):
             random_edge_graph.add_vertices(1)
         edges = []
-        if cutted_edges == 0:
-            for i in range(self.number_of_bboxes):
-                edges.append((i, i))
-            random_edge_graph.add_edges(edges)
-            return random_edge_graph.get_edgelist()
+        if cutted_edges == 0:            
+            return graph.get_edgelist()
         else:
-            number_of_random_edges_to_create = cutted_edges
+            number_of_random_edges_to_create = len(graph.get_edgelist()) - cutted_edges
             while number_of_random_edges_to_create > 0:
                 x, y = random.randint(0, self.number_of_bboxes - 1), random.randint(0, self.number_of_bboxes - 1)
                 edges.append((x, y))
