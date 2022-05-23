@@ -11,7 +11,7 @@ class RandomWalkGraph(object):
         self.walk = walk
         self.number_of_bboxes = 0
 
-    def image_cluster_random_walk_connection(self, image, cluster_radius, cutted_edges):
+    def image_cluster_random_walk_connection(self, image, cluster_radius, graph, cutted_edges):
         """
         This method takes an image I and create T clusters (circles) on it
         All the bounding boxes in this cluster will be connected used X randon walks
@@ -22,7 +22,10 @@ class RandomWalkGraph(object):
 
         return graph with random_walk_image_cluster_connection
         """
-        return [(0,0)]
+        if cutted_edges > 0:
+            return [(0,0)]
+        else:
+            return graph.get_edgelist()
 
     def weighted_random_walk(self, graph, weights, threshold, cutted_edges):
         """
@@ -34,7 +37,13 @@ class RandomWalkGraph(object):
 
         return weighted_random_walk_graph
         """
-        return [(0,0)]
+        if cutted_edges > 0:
+            edges_to_build = len(graph.get_edgelist()) - cutted_edges
+            print(len(graph.get_edgelist()), len(weights))
+            print("PESO", weights)
+            return [(0,0)]
+        else:
+            return graph.get_edgelist()
 
     def classic_random_walk(self, graph, weights):        
         '''

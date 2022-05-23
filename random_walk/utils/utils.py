@@ -51,7 +51,7 @@ class Utils(object):
                     feature_vector = np.asarray(feature_vector)
                     break
         except:
-            feature_vector = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+            feature_vector = [random.randint(0, 1000), 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
         return feature_vector
 
@@ -613,9 +613,9 @@ class Utils(object):
 
             random_walk_edges, cutted_edges = random_walk_object.classic_random_walk(graph, weights)
             random_cut_edges = random_walk_object.graph_with_random_cut(graph, cutted_edges)
-            image_cluster_random_walk_edges = random_walk_object.image_cluster_random_walk_connection(image, 1, cutted_edges)
+            image_cluster_random_walk_edges = random_walk_object.image_cluster_random_walk_connection(image, 1, graph, cutted_edges)
             random_creation_edges = random_walk_object.random_edge_creation(graph, cutted_edges)
-            weighted_random_walk_edges = random_walk_object.weighted_random_walk(weighted_random_walk_graph_current, weights, 60, cutted_edges)
+            weighted_random_walk_edges = random_walk_object.weighted_random_walk(graph, weights, 60, cutted_edges)
             print("FC Edges", graph.get_edgelist())
             print("Random Walk Edges", random_walk_edges)
             print("Random Cut Edges", random_cut_edges)
