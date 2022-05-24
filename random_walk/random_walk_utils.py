@@ -1,7 +1,9 @@
+import enum
 import numpy as np
 import pandas as pd
 import igraph
 import random
+from scipy.spatial import distance
 
 class RandomWalkGraph(object):
     def __init__(self, walk):
@@ -11,23 +13,7 @@ class RandomWalkGraph(object):
         self.walk = walk
         self.number_of_bboxes = 0
 
-    def image_cluster_random_walk_connection(self, image, cluster_radius, graph, cutted_edges):
-        """
-        This method takes an image I and create T clusters (circles) on it
-        All the bounding boxes in this cluster will be connected used X randon walks
-
-        :param image
-        :param number_of_clusters
-        :param cluster_radius
-
-        return graph with random_walk_image_cluster_connection
-        """
-        if cutted_edges > 0:
-            return [(0,0)]
-        else:
-            return graph.get_edgelist()
-
-    def weighted_random_walk(self, graph, weights, threshold, cutted_edges):
+    def weighted_random_walk(self, graph, cutted_edges):
         """
         This method takes a graph G` and walk X random walks inside this graph
         The edges that are equal of bigger than the threshold will be cutted
@@ -38,25 +24,44 @@ class RandomWalkGraph(object):
         return weighted_random_walk_graph
         """
         if cutted_edges > 0:
+            mean_dists = []
+            for i in range(len(graph.vs) - 1):
+                source_connection = graph.vs[i]["features"]
+                target_connection = graph.vs[i + 1]["features"]       
+                euc_dist = distance.euclidean(source_connection, target_connection)
+                if euc_dist != 0:
+                    mean_dists.append(euc_dist)
+
+            mean_dist = np.mean(mean_dists)
+            temp_edges = []
             edges_to_build = len(graph.get_edgelist()) - cutted_edges
-            print(len(graph.get_edgelist()), len(weights))
-            print("PESO", weights)
-            return [(0,0)]
+            for i in range(edges_to_build):
+                seed_source = random.randint(0, len(graph.vs) - 1)
+                seed_target = random.randint(0, len(graph.vs) - 1)
+                for connection in graph.get_edgelist():
+                    source_connection = connection[0]
+                    target_connection = connection[1]
+                    if target_connection == seed_target and source_connection == seed_source:
+                        feature_source = graph.vs[source_connection]["features"]
+                        feature_target = graph.vs[target_connection]["features"]                
+                        euc_dist = distance.euclidean(feature_source, feature_target)
+                        if euc_dist < mean_dist:
+                            temp_edges.append((source_connection, target_connection))
+            return temp_edges
         else:
             return graph.get_edgelist()
 
-    def classic_random_walk(self, graph, weights):        
+    def classic_random_walk(self, graph):
         '''
         This method builds the Random Walk and Random Cut graphs, using the euclidean distance introduced as weights param.
         We used the Computing Communities in Large Networks Using Random Walks approach, with the igraph lib.
 
         :param g:
-        :param weights:
         :param step:
         :return:
         '''
         self.number_of_bboxes = len(graph.vs)
-        dendrogram = graph.community_walktrap(weights=weights, steps=self.walk)
+        dendrogram = graph.community_walktrap(steps=self.walk)
         edges = []
         if self.number_of_bboxes > 3:
             for i in range(self.number_of_bboxes):

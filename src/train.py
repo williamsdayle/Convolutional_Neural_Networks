@@ -233,8 +233,12 @@ def main(args):
         model_name = 'saved_models/{}/{}_SAVED_MODEL_FULL_CONNECTED_{}.pth'.format(args.model ,args.images, args.model)
     elif args.walks > 0 and args.walks <= 10:
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMWALK_{}_{}.pth'.format(args.model, args.images, args.model, args.walks)
-    else:
+    elif args.walks > 10 and args.walks <= 20:
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMCUT_{}_{}.pth'.format(args.model, args.images, args.model, args.walks)
+    elif args.walks > 20 and args.walks <= 30:
+        model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMWEIGHTED_{}_{}.pth'.format(args.model, args.images, args.model, args.walks)
+    elif args.walks > 30 and args.walks <= 40:
+        model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMEDGE_CREATION_{}_{}.pth'.format(args.model, args.images, args.model, args.walks)
 
     model = GCN(g,
                 in_feats,
@@ -267,21 +271,29 @@ def main(args):
             args.images, str(args.fold), str(args.walks), str(args.lr), str(args.dropout),
             args.model, args.n_hidden
         )
-    else:
-        if args.walks > 0 and args.walks <= 10:
-            path = 'logs/{}/STD/LOGS_KFOLD/Random_Cut_KFOLD_{}_STEP_{}_LR_{}_DROP_{}_ARC_{}_NEURON_{}.txt'.format(
-                args.images, str(args.fold), str(args.walks), str(args.lr), str(args.dropout),
-                args.model, args.n_hidden
-            )
+    elif args.walks > 10 and args.walks <= 20:
+        path = 'logs/{}/STD/LOGS_KFOLD/Random_Cut_KFOLD_{}_STEP_{}_LR_{}_DROP_{}_ARC_{}_NEURON_{}.txt'.format(
+            args.images, str(args.fold), str(args.walks), str(args.lr), str(args.dropout),
+            args.model, args.n_hidden
+        )
+
+    elif args.walks > 20 and args.walks <= 30:
+        path = 'logs/{}/STD/LOGS_KFOLD/Random_Weighted_KFOLD_{}_STEP_{}_LR_{}_DROP_{}_ARC_{}_NEURON_{}.txt'.format(
+            args.images, str(args.fold), str(args.walks), str(args.lr), str(args.dropout),
+            args.model, args.n_hidden
+        )
+    
+    elif args.walks > 30 and args.walks <= 40:
+        path = 'logs/{}/STD/LOGS_KFOLD/Random_EDGE_CREATION_KFOLD_{}_STEP_{}_LR_{}_DROP_{}_ARC_{}_NEURON_{}.txt'.format(
+            args.images, str(args.fold), str(args.walks), str(args.lr), str(args.dropout),
+            args.model, args.n_hidden
+        )
 
     file = open(path, 'w')
     file.write('NUMBER OF EDGES = ' + str(n_edges) + '\n' + '\n')
     time_start = time.time()
     model.train()
     for epoch in range(args.n_epochs):
-
-        if epoch >= 3:
-            t0 = time.time()
         # forward
         logits = model(features)
         loss = loss_fcn(logits[train_mask], labels[train_mask])
@@ -328,29 +340,46 @@ def main(args):
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMWALK_{}.pth'.format(args.model, args.images, args.model)
         th.save(model.state_dict(), model_name)
 
-    else:
+    elif args.walks > 10 and args.walks <= 20:
         th.save(model, 'saved_models/{}/random_cut_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
         th.save(model.state_dict(), model_name)
 
         th.save(model, 'saved_models/{}/random_cut_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMCUT_{}.pth'.format(args.model, args.images, args.model)
         th.save(model.state_dict(), model_name)
+
+    elif args.walks > 20 and args.walks <= 30:
+        th.save(model, 'saved_models/{}/random_weighted_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
+        th.save(model.state_dict(), model_name)
+
+        th.save(model, 'saved_models/{}/random_weighted_model_{}_{}.pth'.format(args.model, args.images, args.model))
+        model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMWEIGHTED_{}.pth'.format(args.model, args.images, args.model)
+        th.save(model.state_dict(), model_name)
+
+    elif args.walks > 30 and args.walks <= 40:
+        th.save(model, 'saved_models/{}/random_edge_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
+        th.save(model.state_dict(), model_name)
+
+        th.save(model, 'saved_models/{}/random_edge_model_{}_{}.pth'.format(args.model, args.images, args.model))
+        model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMEDGE_{}.pth'.format(args.model, args.images, args.model)
+        th.save(model.state_dict(), model_name)
+
     print('MODELO SALVO COM SUCESSO!!')
 
 
 if __name__ == '__main__':
 
-    walks = [i for i in range(11)]
+    walks = [i for i in range(41)]
 
-    models = ['Xception']
+    models = ['VGG16']
 
-    lrs = [0.01, 0.05, 0.001, 0.005]
+    lrs = [0.01]
 
-    dropouts = [0.3, 0.5, 0.8, 0.9]
+    dropouts = [0.9]
 
-    neurons = [32, 64, 128, 256]
+    neurons = [256]
 
-    conjuntos = [i for i in range(5)]
+    conjuntos = [i for i in range(1)]
 
     datasets = ['UNREL']
 
@@ -431,12 +460,42 @@ if __name__ == '__main__':
                                     a = a + 1
                                 file.close()
 
-                            else:
+                            elif walk > 10 and walk <= 20:
                                 std_file_name = 'logs/{}/STD/{}RandomCut_{}_{}_{}_{}_{}.txt'.format(dataset, dataset,
                                                                                                     walk, lr, dropout,
                                                                                                     model, neuron)
                                 file = open(std_file_name, 'w')
                                 file.write('Standard deviation of Random Cut ' + str(np.std(results)) + '\n')
+                                file.write('Mean between the experiments is ' + str(np.mean(results)) + '\n')
+                                file.write('Time of process [Mean] is ' + str(np.mean(times)) + '\n')
+                                file.write('Number of nodes used is ' + str(np.mean(nodes_count)) + '\n')
+                                file.write('Number of edges is ' + str(np.mean(edges_count)) + '\n')
+                                a = 0
+                                for values in results:
+                                    file.write('Conjunto ' + str(a) + ' = ' + str(values) + '\n')
+                                    a = a + 1
+                                file.close()
+                            elif walk > 20 and walk <= 30:
+                                std_file_name = 'logs/{}/STD/{}RandomWighted_{}_{}_{}_{}_{}.txt'.format(dataset, dataset,
+                                                                                                    walk, lr, dropout,
+                                                                                                    model, neuron)
+                                file = open(std_file_name, 'w')
+                                file.write('Standard deviation of Random Weighted ' + str(np.std(results)) + '\n')
+                                file.write('Mean between the experiments is ' + str(np.mean(results)) + '\n')
+                                file.write('Time of process [Mean] is ' + str(np.mean(times)) + '\n')
+                                file.write('Number of nodes used is ' + str(np.mean(nodes_count)) + '\n')
+                                file.write('Number of edges is ' + str(np.mean(edges_count)) + '\n')
+                                a = 0
+                                for values in results:
+                                    file.write('Conjunto ' + str(a) + ' = ' + str(values) + '\n')
+                                    a = a + 1
+                                file.close()
+                            elif walk > 30 and walk <= 40:
+                                std_file_name = 'logs/{}/STD/{}RandomEdge_{}_{}_{}_{}_{}.txt'.format(dataset, dataset,
+                                                                                                    walk, lr, dropout,
+                                                                                                    model, neuron)
+                                file = open(std_file_name, 'w')
+                                file.write('Standard deviation of Random Edge ' + str(np.std(results)) + '\n')
                                 file.write('Mean between the experiments is ' + str(np.mean(results)) + '\n')
                                 file.write('Time of process [Mean] is ' + str(np.mean(times)) + '\n')
                                 file.write('Number of nodes used is ' + str(np.mean(nodes_count)) + '\n')
