@@ -294,13 +294,14 @@ def main(args):
     file.write('NUMBER OF EDGES = ' + str(n_edges) + '\n' + '\n')
     time_start = time.time()
     model.train()
-    best_test_loss = 3
     patience = args.early
     for epoch in range(args.n_epochs):
         # forward
         logits = model(features)
         loss = loss_fcn(logits[train_mask], labels[train_mask])
         loss_test = loss_fcn(logits[test_mask], labels[test_mask])
+        if epoch == 0:
+            best_test_loss = loss_test
         if loss_test < best_test_loss:
             best_model = model
             patience = args.early
@@ -425,7 +426,7 @@ if __name__ == '__main__':
                                                     help="number of hidden gcn units")
                                 parser.add_argument("--n-layers", type=int, default=2,
                                                     help="number of hidden gcn layers")
-                                parser.add_argument("--weight-decay", type=float, default=0.00005,
+                                parser.add_argument("--weight-decay", type=float, default=0.000005,
                                                     help="Weight for L2 loss")
                                 parser.add_argument("--self-loop", action='store_true',
                                                     help="graph self-loop (default=False)")

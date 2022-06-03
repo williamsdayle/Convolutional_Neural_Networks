@@ -186,19 +186,19 @@ class Utils(object):
 
             for fold_number in range(kfold_size):
 
-                if os.path.isfile('benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET)) and os.path.isfile(
-                        'benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET)):
+                if os.path.isfile('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET)) and os.path.isfile(
+                        '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET)):
 
                     fold = {'fold_number': 0, 'x': [], 'allx': [], 'tx': [], 'y': [], 'ally': [], 'ty': [],
                             'test_index': []}
 
                     x, allx, tx = [], [], []
 
-                    df_train_loaded_files = pd.read_csv('benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET))
-                    df_test_loaded_files = pd.read_csv('benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET))
+                    df_train_loaded_files = pd.read_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET))
+                    df_test_loaded_files = pd.read_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET))
 
-                    df_train_loaded_labels = pd.read_csv('benchmarks/{}_{}_TRAIN_LABELS.csv'.format(fold_number, DATASET))
-                    df_test_loaded_labels = pd.read_csv('benchmarks/{}_{}_TEST_LABELS.csv'.format(fold_number, DATASET))
+                    df_train_loaded_labels = pd.read_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TRAIN_LABELS.csv'.format(fold_number, DATASET))
+                    df_test_loaded_labels = pd.read_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TEST_LABELS.csv'.format(fold_number, DATASET))
 
                     train_data_loaded = np.array(df_train_loaded_files['Files'])
                     train_labels_loaded = np.array(df_train_loaded_labels['Labels'])
@@ -216,15 +216,13 @@ class Utils(object):
 
                         metadata_loaded = file_loaded.split('/')
 
-                        loaded_extractor = metadata_loaded[2]
+                        loaded_extractor = metadata_loaded[7].split("_")[-1]
 
                         file = metadata_loaded[-1]
 
                         if EXTRACTOR != loaded_extractor:
 
-                            file_loaded = '{}/{}/{}/{}/{}'.format(metadata_loaded[0], DATASET, EXTRACTOR, label_loaded, file)
-
-                            #print(file_loaded)
+                            file_loaded = "/{}/{}/{}/{}/{}".format("/".join(metadata_loaded[1:8]), DATASET, EXTRACTOR, label_loaded, file)
 
                         features = self.array_from_feature_file(file_loaded)
 
@@ -239,14 +237,13 @@ class Utils(object):
 
                         metadata_loaded = file_loaded.split('/')
 
-                        loaded_extractor = metadata_loaded[2]
+                        loaded_extractor = metadata_loaded[7].split("_")[-1]
 
                         file = metadata_loaded[-1]
 
                         if EXTRACTOR != loaded_extractor:
 
-                            file_loaded = '{}/{}/{}/{}/{}'.format(metadata_loaded[0], DATASET, EXTRACTOR, label_loaded,
-                                                                file)
+                            file_loaded = "/{}/{}/{}/{}/{}".format("/".join(metadata_loaded[1:8]), DATASET, EXTRACTOR, label_loaded, file)
 
                         features = self.array_from_feature_file(file_loaded)
 
@@ -258,14 +255,14 @@ class Utils(object):
 
                     for file_loaded, label_loaded, index in zip(train_data_loaded, train_labels_loaded,
                                                                 range(len(train_data_loaded))):
-                        label_index_loaded = self.get_label_index(DATASET=DATASET, label=label_loaded)
+                        label_index_loaded = self.get_label_index(label=label_loaded, labels=labels_aux)
 
                         y[index][label_index_loaded] = 1
                         ally[index][label_index_loaded] = 1
 
                     for file_loaded, label_loaded, index in zip(test_data_loaded, test_labels_loaded,
                                                                 range(len(test_data_loaded))):
-                        label_index_loaded = self.get_label_index(DATASET=DATASET, label=label_loaded)
+                        label_index_loaded = self.get_label_index(label=label_loaded, labels=labels_aux)
 
 
                         ty[index][label_index_loaded] = 1
@@ -314,58 +311,63 @@ class Utils(object):
                     labels = sorted(os.listdir(path=path))
 
                     x, allx, tx = [], [], []
+                    
+                    used_labels = []
 
                     for label in labels:
 
                         label_path = os.path.join(path, label)
 
                         files = os.listdir(label_path)
+                        
+                        if len(files) > 10:
+                            
+                            used_labels.append(label)
 
-                        random.shuffle(files)
-                        random.shuffle(files)
+                            number_of_files_in_the_current_label = len(files)
 
-                        number_of_files_in_the_current_label = len(files)
+                            train_size = int(round((number_of_files_in_the_current_label * train), 1))
 
-                        train_size = int(round((number_of_files_in_the_current_label * train), 1))
+                            test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
+                            '''
+                            Adding train values
+                            '''
+                            for file in files[:train_size]:
 
-                        test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
-                        '''
-                        Adding train values
-                        '''
-                        for file in files[test_size:]:
+                                all_train_labels.append(label)
 
-                            all_train_labels.append(label)
+                                file_path = os.path.join(label_path, file)
 
-                            file_path = os.path.join(label_path, file)
+                                all_train_files.append(file_path)
 
-                            all_train_files.append(file_path)
+                                features = self.array_from_feature_file(file_path)
 
-                            features = self.array_from_feature_file(file_path)
+                                x.append(features)
+                                allx.append(features)                            
+                            '''
+                            Adding test values
+                            '''
+                            for file in files[train_size: ]:
 
-                            x.append(features)
-                            allx.append(features)
+                                all_test_labels.append(label)
 
-                        for file in files[:test_size]:
+                                file_path = os.path.join(label_path, file)
 
-                            all_test_labels.append(label)
+                                all_test_files.append(file_path)
 
-                            file_path = os.path.join(label_path, file)
+                                features = self.array_from_feature_file(file_path)
 
-                            all_test_files.append(file_path)
+                                tx.append(features)
 
-                            features = self.array_from_feature_file(file_path)
-
-                            tx.append(features)
-
-                    y = np.zeros((len(x), len(labels)))
-                    ally = np.zeros((len(allx), len(labels)))
-                    ty = np.zeros((len(tx), len(labels)))
+                    y = np.zeros((len(x), len(used_labels)))
+                    ally = np.zeros((len(allx), len(used_labels)))
+                    ty = np.zeros((len(tx), len(used_labels)))
 
                     label_index = 0
                     file_index_train = 0
                     file_index_test = 0
 
-                    for label in labels:
+                    for label in used_labels:
 
                         label_path = os.path.join(path, label)
 
@@ -373,30 +375,31 @@ class Utils(object):
 
                         number_of_files_in_the_current_label = len(files)
 
-                        train_size = int(round((number_of_files_in_the_current_label * train), 1))
+                        if number_of_files_in_the_current_label > 10:
+                            train_size = int(round((number_of_files_in_the_current_label * train), 1))
 
-                        test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
+                            test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
 
-                        train_files = random.sample(files, train_size)
-                        test_files = [data for data in files if data not in train_files]
+                            train_files = random.sample(files, train_size)
+                            test_files = [data for data in files if data not in train_files]
 
-                        for i in range(train_size):
+                            for i in range(train_size):
 
-                            y[file_index_train][label_index] = 1
+                                y[file_index_train][label_index] = 1
 
-                            ally[file_index_train][label_index] = 1
+                                ally[file_index_train][label_index] = 1
 
-                            file_index_train = file_index_train + 1
+                                file_index_train = file_index_train + 1
 
 
-                        for j in range(test_size):
+                            for j in range(test_size):
 
-                            ty[file_index_test][label_index] = 1
+                                ty[file_index_test][label_index] = 1
 
-                            file_index_test = file_index_test + 1
+                                file_index_test = file_index_test + 1
 
-                        label_index = label_index + 1
-
+                            label_index = label_index + 1
+                    self.create_gcn_labels_file(DATASET=DATASET, labels=used_labels)
                     df_train_files = pd.DataFrame(all_train_files, columns=['Files'])
                     df_test_files = pd.DataFrame(all_test_files, columns=['Files'])
 
@@ -443,21 +446,18 @@ class Utils(object):
 
         return folds
 
-    def create_gcn_labels_file(self, DATASET):
+    def create_gcn_labels_file(self, DATASET, labels):
 
         '''
         This method creates a txt file with all the dataset labels, this file will be used in the label evaluation in
         classification report method in the train file.
 
-        :param DATASET:
+        :param labels:
         :return:
         '''
-        labels_path = "/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/examples/{}".format(DATASET)
-
-        labels_of_the_dataset = sorted(os.listdir(labels_path))
-
-        f = open('gcn/{}_labels.txt'.format(DATASET), 'w')
-        f.write(str(labels_of_the_dataset))
+        print("LABELS used", len(labels))
+        f = open('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/gcn/{}_labels.txt'.format(DATASET), 'w')
+        f.write(str(labels))
         f.close()
 
     def create_graph_data(self, DATASET, EXTRACTOR, POOLING, images, RANDOM_WALK_STEP):
@@ -627,49 +627,49 @@ class Utils(object):
             random_edge_creation_graph_current.add_edges(
                 RANDOM_CREATION_EDGES)  # inserting all edges in the graph, this is the random creation edges
             
-        #     image_adjacency_matrix_fc = graph.get_adjacency()
-        #     image_data_frame_fc = pd.DataFrame(image_adjacency_matrix_fc, columns=columns, index=indexes)
+            image_adjacency_matrix_fc = graph.get_adjacency()
+            image_data_frame_fc = pd.DataFrame(image_adjacency_matrix_fc, columns=columns, index=indexes)
 
-        #     image_data_frame_fc.to_csv(
-        #         '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/FULL CONNECTED/{}.csv'.format(DATASET, image.image_name.replace('.jpg', '')))
+            image_data_frame_fc.to_csv(
+                '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/FULL CONNECTED/{}.csv'.format(DATASET, image.image_name.replace('.jpg', '')))
 
-        #     image_adjacency_matrix_rw = random_walk_graph_current.get_adjacency()
-        #     image_data_frame_rw = pd.DataFrame(image_adjacency_matrix_rw, columns=columns, index=indexes)
+            image_adjacency_matrix_rw = random_walk_graph_current.get_adjacency()
+            image_data_frame_rw = pd.DataFrame(image_adjacency_matrix_rw, columns=columns, index=indexes)
 
-        #     image_data_frame_rw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WALK/{}_{}_{}.csv'.format(DATASET,
-        #                                                                             image.image_name.replace('.jpg',
-        #                                                                                                         ''),
-        #                                                                             RANDOM_WALK_STEP,
-        #                                                                             EXTRACTOR))
+            image_data_frame_rw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WALK/{}_{}_{}.csv'.format(DATASET,
+                                                                                    image.image_name.replace('.jpg',
+                                                                                                                ''),
+                                                                                    RANDOM_WALK_STEP,
+                                                                                    EXTRACTOR))
 
-        #     image_adjacency_matrix_rc = random_cut_graph_current.get_adjacency()
-        #     image_data_frame_rc = pd.DataFrame(image_adjacency_matrix_rc, columns=columns, index=indexes)
+            image_adjacency_matrix_rc = random_cut_graph_current.get_adjacency()
+            image_data_frame_rc = pd.DataFrame(image_adjacency_matrix_rc, columns=columns, index=indexes)
 
-        #     image_data_frame_rc.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CUT/{}_{}_{}.csv'.format(DATASET,
-        #                                                                             image.image_name.replace('.jpg',
-        #                                                                                                     ''),
-        #                                                                             RANDOM_WALK_STEP,
-        #                                                                             EXTRACTOR))
+            image_data_frame_rc.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CUT/{}_{}_{}.csv'.format(DATASET,
+                                                                                    image.image_name.replace('.jpg',
+                                                                                                            ''),
+                                                                                    RANDOM_WALK_STEP,
+                                                                                    EXTRACTOR))
             
             
-        #     image_adjacency_matrix_rcw = weighted_random_walk_graph_current.get_adjacency()
-        #     image_data_frame_rcw = pd.DataFrame(image_adjacency_matrix_rcw, columns=columns, index=indexes)
+            image_adjacency_matrix_rcw = weighted_random_walk_graph_current.get_adjacency()
+            image_data_frame_rcw = pd.DataFrame(image_adjacency_matrix_rcw, columns=columns, index=indexes)
 
-        #     image_data_frame_rcw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WEIGHT/{}_{}_{}.csv'.format(DATASET,
-        #                                                                             image.image_name.replace('.jpg',
-        #                                                                                                     ''),
-        #                                                                             RANDOM_WALK_STEP,
-        #                                                                             EXTRACTOR))
+            image_data_frame_rcw.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM WEIGHT/{}_{}_{}.csv'.format(DATASET,
+                                                                                    image.image_name.replace('.jpg',
+                                                                                                            ''),
+                                                                                    RANDOM_WALK_STEP,
+                                                                                    EXTRACTOR))
             
             
-        #     image_adjacency_matrix_rec = random_edge_creation_graph_current.get_adjacency()
-        #     image_data_frame_rec = pd.DataFrame(image_adjacency_matrix_rec, columns=columns, index=indexes)
+            image_adjacency_matrix_rec = random_edge_creation_graph_current.get_adjacency()
+            image_data_frame_rec = pd.DataFrame(image_adjacency_matrix_rec, columns=columns, index=indexes)
 
-        #     image_data_frame_rec.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CREATION/{}_{}_{}.csv'.format(DATASET,
-        #                                                                             image.image_name.replace('.jpg',
-        #                                                                                                     ''),
-        #                                                                             RANDOM_WALK_STEP,
-        #                                                                             EXTRACTOR))
+            image_data_frame_rec.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/csv/{}/RANDOM CREATION/{}_{}_{}.csv'.format(DATASET,
+                                                                                    image.image_name.replace('.jpg',
+                                                                                                            ''),
+                                                                                    RANDOM_WALK_STEP,
+                                                                                    EXTRACTOR))
             
             lista_de_graph_obj_FC.append(graph)
             lista_de_graph_obj_RC.append(random_cut_graph_current)
@@ -749,29 +749,18 @@ class Utils(object):
 
         return d_dictionary
 
-    def get_label_index(self, DATASET, label):
+    def get_label_index(self, label, labels):
 
         '''
         Method used in the data build process
-
-        :param DATASET:
+        
         :param label:
         :return label index:
         '''
 
-        labels_path = "/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/examples/{}/".format(DATASET)
-
-        label_index = 0
-
-        labels_of_the_dataset = sorted(os.listdir(path=labels_path))
-
-        for current_label, index in zip(labels_of_the_dataset, range(len(labels_of_the_dataset))):
-
-            if current_label == label:
-
-                label_index = index
-
-        return label_index
+        for label_id, l in enumerate(labels):
+            if l == label:
+                return label_id
 
     def remove_repetidos(self, lista):
         l = []

@@ -10,15 +10,13 @@ def main(args):
 
     POOLING = args.pooling
 
-    TRAIN = 0.7
+    TRAIN = 0.8
 
-    TEST = 0.3
+    TEST = 0.2
 
     kfold_split = True
 
     kfold_split_number = 5
-
-    utils.create_gcn_labels_file(DATASET=DATASET)
 
     RANDOM_WALK_STEP = args.walk
 
@@ -70,7 +68,7 @@ if __name__ == '__main__':
     parser.add_argument('--extractor', type=str, default='VGG16',
                         help='The number of walks to give')
 
-    parser.add_argument('--pooling', type=str, default='avg',
+    parser.add_argument('--pooling', type=str, default='max',
                         help='The number of walks to give')
 
     args = parser.parse_args()

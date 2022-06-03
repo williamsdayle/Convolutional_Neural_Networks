@@ -44,27 +44,27 @@ print("BASE DIR {}".format(BASE_DIR))
 print("-------------------------------------------")
 
 
-def get_model(model_name, input_shape):
+def get_model(model_name, input_shape, pooling):
     base_model = None
     preprocessing_function = None
     # Prepare the model
     if model_name == "VGG16":
         from tensorflow.keras.applications.vgg16 import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = VGG16(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = VGG16(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "VGG19":
         from tensorflow.keras.applications.vgg19 import preprocess_input
         preprocessing_function = preprocess_input
 
-        base_model = VGG19(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = VGG19(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "ResNet50":
         from tensorflow.keras.applications.resnet50 import preprocess_input
         preprocessing_function = preprocess_input
 
         # pooling="avg",
-        base_model = ResNet50(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = ResNet50(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "InceptionResNetV2":
 
@@ -72,64 +72,64 @@ def get_model(model_name, input_shape):
         preprocessing_function = preprocess_input
 
         # pooling="avg",
-        base_model = InceptionResNetV2(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = InceptionResNetV2(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "InceptionV3":
         from tensorflow.keras.applications.inception_v3 import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = InceptionV3(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = InceptionV3(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "Xception":
         from tensorflow.keras.applications.xception import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = Xception(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = Xception(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "InceptionResNetV2":
         from tensorflow.keras.applications.inception_resnet_v2 import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = InceptionResNetV2(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = InceptionResNetV2(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "MobileNet":
         from tensorflow.keras.applications.mobilenet import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = MobileNet(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = MobileNet(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
 
     elif model_name == "MobileNetV2":
         from tensorflow.keras.applications.mobilenet import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = MobileNetV2(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = MobileNetV2(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "DenseNet121":
         from tensorflow.keras.applications.densenet import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = DenseNet121(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = DenseNet121(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "DenseNet169":
         from tensorflow.keras.applications.densenet import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = DenseNet169(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = DenseNet169(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "DenseNet201":
         from tensorflow.keras.applications.densenet import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = DenseNet201(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = DenseNet201(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "NASNetLarge":
         from tensorflow.keras.applications.nasnet import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = NASNetLarge(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = NASNetLarge(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "NASNetMobile":
         from tensorflow.keras.applications.nasnet import preprocess_input
         preprocessing_function = preprocess_input
-        base_model = NASNetMobile(weights='imagenet', include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = NASNetMobile(weights='imagenet', include_top=False, pooling=pooling, input_shape=input_shape)
 
     elif model_name == "EfficientNet":
         from efficientnet.tfkeras import preprocess_input
         preprocessing_function = preprocess_input
 
-        base_model = efn.EfficientNetB7(weights="imagenet", include_top=False, pooling="avg", input_shape=input_shape)
+        base_model = efn.EfficientNetB7(weights="imagenet", include_top=False, pooling=pooling, input_shape=input_shape)
 
     return preprocessing_function, base_model
 
@@ -138,7 +138,9 @@ if __name__ == '__main__':
 
     models = ['VGG16', 'ResNet50', 'InceptionV3', 'InceptionResNetV2', 'Xception', 'EfficientNet']
 
-    DATASETS = ['UNREL', 'MIT67', "MALARIA"]
+    DATASETS = ['UNREL']
+    
+    pooling = "max"
 
     for DATASET in DATASETS:
 
@@ -147,7 +149,7 @@ if __name__ == '__main__':
             model_name = model_
             base_path = os.path.join(BASE_DIR, "examples")
             src_path = os.path.join(base_path, DATASET)
-            base_dst_path = os.path.join(BASE_DIR, "feature_files_avg")
+            base_dst_path = os.path.join(BASE_DIR, "feature_files_{}".format(pooling))
             data_set_dst_path = os.path.join(base_dst_path, DATASET)
             dst_path = os.path.join(data_set_dst_path, model_)
 
@@ -161,7 +163,7 @@ if __name__ == '__main__':
             image_channels = 3
             dim = (image_width, image_height, image_channels)
 
-            preprocessing_function, model = get_model(model_, dim)
+            preprocessing_function, model = get_model(model_, dim, pooling)
 
             EXTENSION_IMAGE = '.jpg'
             EXTENSION_TEXT = '.txt'
