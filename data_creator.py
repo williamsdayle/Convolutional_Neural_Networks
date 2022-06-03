@@ -10,9 +10,9 @@ def main(args):
 
     POOLING = args.pooling
 
-    TRAIN = 0.8
+    TRAIN = 0.7
 
-    TEST = 0.2
+    TEST = 0.3
 
     kfold_split = True
 
@@ -29,7 +29,7 @@ def main(args):
     All the graphs
     '''
     fc, rw, rc, rwec, rec, fc_time, rw_time, rc_time, rwec_time, rec_time = utils.create_graph_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, images=images,
-                                   RANDOM_WALK_STEP=RANDOM_WALK_STEP)
+                                  RANDOM_WALK_STEP=RANDOM_WALK_STEP)
 
     '''
     Saving the process time

@@ -23,33 +23,30 @@ class RandomWalkGraph(object):
 
         return weighted_random_walk_graph
         """
-        if cutted_edges > 0:
-            mean_dists = []
-            for i in range(len(graph.vs) - 1):
-                source_connection = graph.vs[i]["features"]
-                target_connection = graph.vs[i + 1]["features"]       
-                euc_dist = distance.euclidean(source_connection, target_connection)
-                if euc_dist != 0:
-                    mean_dists.append(euc_dist)
+        mean_dists = []
+        for i in range(len(graph.vs) - 1):
+            source_connection = graph.vs[i]["features"]
+            target_connection = graph.vs[i + 1]["features"]       
+            euc_dist = distance.sqeuclidean(source_connection, target_connection)
+            if euc_dist != 0:
+                mean_dists.append(euc_dist)
 
-            mean_dist = np.mean(mean_dists)
-            temp_edges = []
-            edges_to_build = len(graph.get_edgelist()) - cutted_edges
-            for i in range(edges_to_build):
-                seed_source = random.randint(0, len(graph.vs) - 1)
-                seed_target = random.randint(0, len(graph.vs) - 1)
-                for connection in graph.get_edgelist():
-                    source_connection = connection[0]
-                    target_connection = connection[1]
-                    if target_connection == seed_target and source_connection == seed_source:
-                        feature_source = graph.vs[source_connection]["features"]
-                        feature_target = graph.vs[target_connection]["features"]                
-                        euc_dist = distance.euclidean(feature_source, feature_target)
-                        if euc_dist < mean_dist:
-                            temp_edges.append((source_connection, target_connection))
-            return temp_edges
-        else:
-            return graph.get_edgelist()
+        mean_dist = np.mean(mean_dists)
+        temp_edges = []
+        edges_to_build = len(graph.get_edgelist()) - cutted_edges
+        for i in range(edges_to_build):
+            seed_source = random.randint(0, len(graph.vs) - 1)
+            seed_target = random.randint(0, len(graph.vs) - 1)
+            for connection in graph.get_edgelist():
+                source_connection = connection[0]
+                target_connection = connection[1]
+                if target_connection == seed_target and source_connection == seed_source:
+                    feature_source = graph.vs[source_connection]["features"]
+                    feature_target = graph.vs[target_connection]["features"]                
+                    euc_dist = distance.sqeuclidean(feature_source, feature_target)
+                    if euc_dist < mean_dist:
+                        temp_edges.append((source_connection, target_connection))
+        return temp_edges
 
     def classic_random_walk(self, graph):
         '''
@@ -60,13 +57,21 @@ class RandomWalkGraph(object):
         :param step:
         :return:
         '''
+        w = []
+        for i in range(len(graph.vs) - 1):
+            source_connection = graph.vs[i]["features"]
+            target_connection = graph.vs[i + 1]["features"]       
+            euc_dist = distance.sqeuclidean(source_connection, target_connection)
+            if euc_dist != 0:
+                w.append(euc_dist)
+
         self.number_of_bboxes = len(graph.vs)
-        dendrogram = graph.community_walktrap(steps=self.walk)
+        dendrogram = graph.community_walktrap(steps=self.walk, weights=w)
         edges = []
         if self.number_of_bboxes > 3:
             for i in range(self.number_of_bboxes):
                 edges.append((i, i))
-            clusters = dendrogram.as_clustering(n=dendrogram.optimal_count)  # or clusters = dendrogram.as_clustering(n=len(dendrogram.merges))        
+            clusters = dendrogram.as_clustering(n=int(len(graph.vs) * 0.4))  # or clusters = dendrogram.as_clustering(n=len(dendrogram.merges))        
             for cluster, index_clust in zip(clusters, range(len(clusters))):
                 for node in cluster:
                     edge = (index_clust, node)
@@ -129,16 +134,14 @@ class RandomWalkGraph(object):
         for i in range(self.number_of_bboxes):
             random_edge_graph.add_vertices(1)
         edges = []
-        if cutted_edges == 0:            
-            return graph.get_edgelist()
-        else:
-            number_of_random_edges_to_create = len(graph.get_edgelist()) - cutted_edges
-            while number_of_random_edges_to_create > 0:
-                x, y = random.randint(0, self.number_of_bboxes - 1), random.randint(0, self.number_of_bboxes - 1)
-                edges.append((x, y))
-                number_of_random_edges_to_create-=1
-            random_edge_graph.add_edges(edges)
-            return random_edge_graph.get_edgelist()
+        number_of_random_edges_to_create = len(graph.get_edgelist()) - cutted_edges
+        while number_of_random_edges_to_create > 0:
+            x, y = random.randint(0, self.number_of_bboxes - 1), random.randint(0, self.number_of_bboxes - 1)
+            edges.append((x, y))
+            number_of_random_edges_to_create-=1
+        random_edge_graph.add_edges(edges)
+        return random_edge_graph.get_edgelist()
+            
 
 
 class BoundingBox(object):

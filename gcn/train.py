@@ -187,6 +187,7 @@ def class_evaluate(model, features, labels, mask, base):
 
 
 def main(args):
+    best_model = None
     # load and preprocess dataset
     graph, features, labels, train_mask, val_mask, test_mask, size, num_classes = load_data(args.images, args.model,
                                                                                             args.walks, args.fold)
@@ -248,10 +249,10 @@ def main(args):
                 F.relu,
                 args.dropout)
     # try:
-    # model.load_state_dict(th.load(model_name))
-    # print('MODELO CARREGADO COM SUCESSO')
+    #    model.load_state_dict(th.load(model_name))
+    #    print('MODELO CARREGADO COM SUCESSO')
     # except:
-    # print('MODELO CRIADO COM SUCESSO')
+    #    print('MODELO CRIADO COM SUCESSO')
 
     if cuda:
         model.cuda()
@@ -293,10 +294,19 @@ def main(args):
     file.write('NUMBER OF EDGES = ' + str(n_edges) + '\n' + '\n')
     time_start = time.time()
     model.train()
+    best_test_loss = 3
+    patience = args.early
     for epoch in range(args.n_epochs):
         # forward
         logits = model(features)
         loss = loss_fcn(logits[train_mask], labels[train_mask])
+        loss_test = loss_fcn(logits[test_mask], labels[test_mask])
+        if loss_test < best_test_loss:
+            best_model = model
+            patience = args.early
+        if patience == 0:
+            print("Stop by Early Stopping...")
+            break
 
         optimizer.zero_grad()
         loss.backward()
@@ -304,11 +314,12 @@ def main(args):
 
         acc = evaluate(model, features, labels, train_mask)
         test_acc = evaluate(model, features, labels, test_mask)
-        print("Epoch {:05d} | Loss {:.8f} | Train_Accuracy {:.9f} | Test_Accuracy {:.9f} |".format(epoch, loss.item(),
-                                                                                                   acc, test_acc))
+        print("Epoch {:05d} | Loss {:.8f} | Train_Accuracy {:.9f} | Test_Accuracy {:.9f} | Test_Loss {:.9f}".format(epoch, loss.item(),
+                                                                                                   acc, test_acc, loss_test.item()))
         file.write(
             'Epoch ' + str(epoch) + ' | Loss ' + str(loss.item()) + ' | ' + 'Train_Accuracy ' + str(acc) + ' | \n')
-
+        patience-=1
+        
     time_stop = time.time()
     process_time = time_stop - time_start
     times.append(process_time)
@@ -317,69 +328,69 @@ def main(args):
     file.write('Process time execution = ' + str(process_time) + '\n')
     print()
 
-    test_acc, classification, cm = class_evaluate(model, features, labels, test_mask, args.images)
+    test_acc, classification, cm = class_evaluate(best_model, features, labels, test_mask, args.images)
     file.write(str(test_acc) + '\n')
     file.write(str(classification) + '\n')
     cm.to_csv(path.replace('.txt', '.csv'))
     results.append(test_acc)
     print("Test accuracy {:.2%}".format(test_acc))
     if args.walks == 0:
-        th.save(model, 'saved_models/{}/full_connected_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(model.state_dict(), model_name)
+        th.save(best_model, 'saved_models/{}/full_connected_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
+        th.save(best_model.state_dict(), model_name)
 
-        th.save(model, 'saved_models/{}/full_connected_model_{}.pth'.format(args.model, args.model))
+        th.save(best_model, 'saved_models/{}/full_connected_model_{}.pth'.format(args.model, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_FULL_CONNECTED_{}.pth'.format(args.model, args.images, args.model)
-        th.save(model.state_dict(), model_name)
+        th.save(best_model.state_dict(), model_name)
 
     elif args.walks > 0 and args.walks <= 10:
 
-        th.save(model, 'saved_models/{}/random_walk_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(model.state_dict(), model_name)
+        th.save(best_model, 'saved_models/{}/random_walk_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
+        th.save(best_model.state_dict(), model_name)
 
-        th.save(model, 'saved_models/{}/random_walk_model_{}_{}.pth'.format(args.model, args.images, args.model))
+        th.save(best_model, 'saved_models/{}/random_walk_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMWALK_{}.pth'.format(args.model, args.images, args.model)
-        th.save(model.state_dict(), model_name)
+        th.save(best_model.state_dict(), model_name)
 
     elif args.walks > 10 and args.walks <= 20:
-        th.save(model, 'saved_models/{}/random_cut_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(model.state_dict(), model_name)
+        th.save(best_model, 'saved_models/{}/random_cut_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
+        th.save(best_model.state_dict(), model_name)
 
-        th.save(model, 'saved_models/{}/random_cut_model_{}_{}.pth'.format(args.model, args.images, args.model))
+        th.save(best_model, 'saved_models/{}/random_cut_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMCUT_{}.pth'.format(args.model, args.images, args.model)
-        th.save(model.state_dict(), model_name)
+        th.save(best_model.state_dict(), model_name)
 
     elif args.walks > 20 and args.walks <= 30:
-        th.save(model, 'saved_models/{}/random_weighted_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(model.state_dict(), model_name)
+        th.save(best_model, 'saved_models/{}/random_weighted_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
+        th.save(best_model.state_dict(), model_name)
 
-        th.save(model, 'saved_models/{}/random_weighted_model_{}_{}.pth'.format(args.model, args.images, args.model))
+        th.save(best_model, 'saved_models/{}/random_weighted_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMWEIGHTED_{}.pth'.format(args.model, args.images, args.model)
-        th.save(model.state_dict(), model_name)
+        th.save(best_model.state_dict(), model_name)
 
     elif args.walks > 30 and args.walks <= 40:
-        th.save(model, 'saved_models/{}/random_edge_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(model.state_dict(), model_name)
+        th.save(best_model, 'saved_models/{}/random_edge_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
+        th.save(best_model.state_dict(), model_name)
 
-        th.save(model, 'saved_models/{}/random_edge_model_{}_{}.pth'.format(args.model, args.images, args.model))
+        th.save(best_model, 'saved_models/{}/random_edge_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMEDGE_{}.pth'.format(args.model, args.images, args.model)
-        th.save(model.state_dict(), model_name)
+        th.save(best_model.state_dict(), model_name)
 
     print('MODELO SALVO COM SUCESSO!!')
 
 
 if __name__ == '__main__':
 
-    walks = [i for i in range(20, 31)]
+    walks = [i for i in range(41)]
 
     models = ['VGG16']
 
-    lrs = [0.01]
+    lrs = [0.01, 0.05, 0.001, 0.005]
 
-    dropouts = [0.9]
+    dropouts = [0.3, 0.5, 0.9]
 
-    neurons = [256]
+    neurons = [256, 512]
 
-    conjuntos = [i for i in range(1)]
+    conjuntos = [i for i in range(5)]
 
     datasets = ['UNREL']
 
@@ -406,13 +417,15 @@ if __name__ == '__main__':
                                                     help="random walk steps")
                                 parser.add_argument("--lr", type=float, default=lr,
                                                     help="learning rate")
+                                parser.add_argument("--early", type=int, default=500,
+                                                    help="early stoping, trying to avoid overfitting")
                                 parser.add_argument("--n-epochs", type=int, default=2000,
                                                     help="number of training epochs")
                                 parser.add_argument("--n-hidden", type=int, default=neuron,
                                                     help="number of hidden gcn units")
                                 parser.add_argument("--n-layers", type=int, default=2,
                                                     help="number of hidden gcn layers")
-                                parser.add_argument("--weight-decay", type=float, default=0.000005,
+                                parser.add_argument("--weight-decay", type=float, default=0.00005,
                                                     help="Weight for L2 loss")
                                 parser.add_argument("--self-loop", action='store_true',
                                                     help="graph self-loop (default=False)")
