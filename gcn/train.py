@@ -389,7 +389,7 @@ if __name__ == '__main__':
 
     dropouts = [0.3, 0.5, 0.9]
 
-    neurons = [256, 512]
+    neurons = [128, 256]
 
     conjuntos = [i for i in range(5)]
 

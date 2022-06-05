@@ -7,6 +7,7 @@ import igraph
 from scipy.sparse import csr_matrix
 from collections import defaultdict
 from tqdm import tqdm
+from sklearn.model_selection import train_test_split
 import random
 import traceback
 from ..random_walk_utils import RandomWalkGraph
@@ -182,6 +183,7 @@ class Utils(object):
 
         folds = []  # X and Y will be added here
         labels_for_graph = []
+        cut_label_data = 20
 
         if kfold == True:
 
@@ -189,7 +191,6 @@ class Utils(object):
 
                 if os.path.isfile('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET)) and os.path.isfile(
                         '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET)):
-
                     fold = {'fold_number': 0, 'x': [], 'allx': [], 'tx': [], 'y': [], 'ally': [], 'ty': [],
                             'test_index': []}
 
@@ -301,20 +302,18 @@ class Utils(object):
 
                     fold = {'fold_number': 0, 'x': [], 'allx': [], 'tx': [], 'y': [], 'ally': [], 'ty': [],
                             'test_index': []}
-
-                    all_train_files = []
-                    all_test_files = []
-
-                    all_train_labels = []
-                    all_test_labels = []
-
+                    
                     path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/feature_files_{}/{}/{}'.format(POOLING, DATASET, EXTRACTOR)
 
                     labels = sorted(os.listdir(path=path))
+                    
+                    all_data_used = []
+                    all_data_used_y = []
 
                     x, allx, tx = [], [], []
                     
                     used_labels = []
+                    index = 0
 
                     for label in labels:
 
@@ -322,93 +321,47 @@ class Utils(object):
 
                         files = os.listdir(label_path)
                         
-                        if len(files) > 10:
+                        if len(files) > cut_label_data:
                             
                             used_labels.append(label)
 
-                            number_of_files_in_the_current_label = len(files)
-
-                            train_size = int(round((number_of_files_in_the_current_label * train), 1))
-
-                            test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
-                            '''
-                            Adding train values
-                            '''
-                            for file in files[:train_size]:
-
-                                all_train_labels.append(label)
-
+                            for file in files:
+                                
                                 file_path = os.path.join(label_path, file)
+                                all_data_used.append(file_path)
+                                all_data_used_y.append(index)
+                            index+=1                                
 
-                                all_train_files.append(file_path)
+                    X = np.array(all_data_used)
+                    Y = np.array(all_data_used_y)
+                    data_train, data_test, y_train, y_test = train_test_split(
+                                                         X, Y, test_size=0.2, random_state=42)
+                    x = [self.array_from_feature_file(file) for file in data_train]
+                    allx = [self.array_from_feature_file(file) for file in data_train]
+                    tx = [self.array_from_feature_file(file) for file in data_test]
 
-                                features = self.array_from_feature_file(file_path)
+                    train_values = np.max(y_train) + 1
+                    test_values = np.max(y_test) + 1
 
-                                x.append(features)
-                                allx.append(features)                            
-                            '''
-                            Adding test values
-                            '''
-                            for file in files[train_size: ]:
-
-                                all_test_labels.append(label)
-
-                                file_path = os.path.join(label_path, file)
-
-                                all_test_files.append(file_path)
-
-                                features = self.array_from_feature_file(file_path)
-
-                                tx.append(features)
-
-                    y = np.zeros((len(x), len(used_labels)))
-                    ally = np.zeros((len(allx), len(used_labels)))
-                    ty = np.zeros((len(tx), len(used_labels)))
-
-                    label_index = 0
-                    file_index_train = 0
-                    file_index_test = 0
-
-                    for label in used_labels:
-
-                        label_path = os.path.join(path, label)
-
-                        files = os.listdir(label_path)
-
-                        number_of_files_in_the_current_label = len(files)
-
-                        if number_of_files_in_the_current_label > 10:
-                            train_size = int(round((number_of_files_in_the_current_label * train), 1))
-
-                            test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
-
-                            train_files = random.sample(files, train_size)
-                            test_files = [data for data in files if data not in train_files]
-
-                            for i in range(train_size):
-
-                                y[file_index_train][label_index] = 1
-
-                                ally[file_index_train][label_index] = 1
-
-                                file_index_train = file_index_train + 1
-
-
-                            for j in range(test_size):
-
-                                ty[file_index_test][label_index] = 1
-
-                                file_index_test = file_index_test + 1
-
-                            label_index = label_index + 1
+                    y = np.eye(train_values)[y_train]
+                    ally = np.eye(train_values)[y_train]
+                    ty = np.eye(test_values)[y_test]
                             
                     labels_for_graph = used_labels
                     self.create_gcn_labels_file(DATASET=DATASET, labels=used_labels)
-                    df_train_files = pd.DataFrame(all_train_files, columns=['Files'])
-                    df_test_files = pd.DataFrame(all_test_files, columns=['Files'])
+                    df_train_files = pd.DataFrame(data_train, columns=['Files'])
+                    df_test_files = pd.DataFrame(data_test, columns=['Files'])
+                    
+                    train_labels = []
+                    test_labels = []
+                    for y_data in y_train:
+                        train_labels.append(used_labels[y_data])
+                    
+                    for y_data in y_test:
+                        test_labels.append(used_labels[y_data])
 
-                    df_train_labels = pd.DataFrame(all_train_labels, columns=['Labels'])
-                    df_test_labels = pd.DataFrame(all_test_labels, columns=['Labels'])
+                    df_train_labels = pd.DataFrame(train_labels, columns=['Labels'])
+                    df_test_labels = pd.DataFrame(test_labels, columns=['Labels'])
 
                     df_test_files.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET))
                     df_train_files.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET))

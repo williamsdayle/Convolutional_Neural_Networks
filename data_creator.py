@@ -26,8 +26,7 @@ def main(args):
     '''
     Creating the data for gcn
     '''
-    folds, labels_to_use = utils.create_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, kfold=kfold_split, train=TRAIN, kfold_size=kfold_split_number)   
-    print(labels_to_use)
+    folds, labels_to_use = utils.create_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, kfold=kfold_split, train=TRAIN, kfold_size=kfold_split_number)
     '''
     All the graphs
     '''
@@ -69,7 +68,7 @@ if __name__ == '__main__':
     parser.add_argument('--extractor', type=str, default='VGG16',
                         help='The number of walks to give')
 
-    parser.add_argument('--pooling', type=str, default='max',
+    parser.add_argument('--pooling', type=str, default='avg',
                         help='The number of walks to give')
 
     args = parser.parse_args()
