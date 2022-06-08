@@ -10,15 +10,13 @@ def main(args):
 
     POOLING = args.pooling
 
-    TRAIN = 0.7
+    TRAIN = 0.8
 
-    TEST = 0.3
+    TEST = 0.2
 
     kfold_split = True
 
     kfold_split_number = 3
-
-    utils.create_gcn_labels_file(DATASET=DATASET)
 
     RANDOM_WALK_STEP = args.walk
 
@@ -26,10 +24,14 @@ def main(args):
     images = utils.build_image_and_bounding_box_data(DATASET=DATASET)
 
     '''
+    Creating the data for gcn
+    '''
+    folds, labels_to_use = utils.create_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, kfold=kfold_split, train=TRAIN, kfold_size=kfold_split_number)
+    '''
     All the graphs
     '''
     fc, rw, rc, rwec, rec, fc_time, rw_time, rc_time, rwec_time, rec_time = utils.create_graph_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, images=images,
-                                  RANDOM_WALK_STEP=RANDOM_WALK_STEP)
+                                  RANDOM_WALK_STEP=RANDOM_WALK_STEP, LABELS_TO_USE=labels_to_use)
 
     '''
     Saving the process time
@@ -37,11 +39,7 @@ def main(args):
 
     utils.save_process_time(DATASET=DATASET, FC_TIME=fc_time, RW_TIME=rw_time, RC_TIME=rc_time, WALK=RANDOM_WALK_STEP, MODEL=EXTRACTOR, R_EDGE_TIME=rec_time, R_WEIGHTED_TIME=rwec_time)
 
-    '''
-    Creating the data for gcn
-    '''
-    folds = utils.create_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, kfold=kfold_split, train=TRAIN, kfold_size=kfold_split_number)
-
+    
     '''
     Saving data in KIPF way
     '''
