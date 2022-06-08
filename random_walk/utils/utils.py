@@ -500,9 +500,7 @@ class Utils(object):
         graph_RW_size = 0
         graph_RC_size = 0
         graph_REC_size = 0
-        graph_RWC_size = 0
-        
-
+        graph_RWC_size = 0      
 
         global_count = 0
 

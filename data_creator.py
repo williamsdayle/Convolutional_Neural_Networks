@@ -16,7 +16,7 @@ def main(args):
 
     kfold_split = True
 
-    kfold_split_number = 5
+    kfold_split_number = 3
 
     utils.create_gcn_labels_file(DATASET=DATASET)
 
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('--walk', type=int, default=1,
                         help='The number of walks to give')
 
-    parser.add_argument('--dataset', type=str, default='UNREL',
+    parser.add_argument('--dataset', type=str, default='MIT67',
                         help='The to process')
 
     parser.add_argument('--extractor', type=str, default='VGG16',
