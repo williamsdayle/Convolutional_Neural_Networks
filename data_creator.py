@@ -30,6 +30,7 @@ def main(args):
     '''
     All the graphs
     '''
+    print("Folds created..")
     fc, rw, rc, rwec, rec, fc_time, rw_time, rc_time, rwec_time, rec_time = utils.create_graph_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, images=images,
                                   RANDOM_WALK_STEP=RANDOM_WALK_STEP, LABELS_TO_USE=labels_to_use)
 

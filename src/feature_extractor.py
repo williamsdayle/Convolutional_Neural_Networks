@@ -6,7 +6,7 @@ import os
 import pickle
 import scipy #from scipy.sparse import csr_matrix
 import tensorflow as tf
-import traceback
+from tqdm import tqdm
 
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.resnet50 import ResNet50
@@ -138,9 +138,9 @@ if __name__ == '__main__':
 
     models = ['VGG16', 'ResNet50', 'InceptionV3', 'InceptionResNetV2', 'Xception', 'EfficientNet']
 
-    DATASETS = ['UNREL']
+    DATASETS = ['VRD']
     
-    pooling = "max"
+    pooling = "avg"
 
     for DATASET in DATASETS:
 
@@ -169,12 +169,11 @@ if __name__ == '__main__':
             EXTENSION_TEXT = '.txt'
 
             labels = os.listdir(src_path)
+            print("Extracting in model {}".format(model_))
 
             for label in labels:
 
                 label_path = os.path.join(dst_path, label)
-
-                print(label_path)
 
                 if os.path.isdir(label_path):
                     pass
@@ -186,8 +185,9 @@ if __name__ == '__main__':
                 loading_counter = 0
 
                 files = os.listdir(os.path.join(src_path, label))
+                print("Extracting in label {}".format(label))
 
-                for file_ in files:
+                for file_ in tqdm(files):
                     file_path = os.path.join(os.path.join(src_path, label), file_)
 
                     dst_final_path = os.path.join(label_path, file_)
@@ -219,8 +219,6 @@ if __name__ == '__main__':
                         "")
                     with open(dst_final_path.replace('.jpg', '.txt'), "w") as file:
                         file.write(feature_array_string)
-
-                    print('Image name:', file_, 'Model:', model_, 'Feature size:', len(flatten_array))
 
 
 

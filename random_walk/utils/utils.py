@@ -79,15 +79,21 @@ class Utils(object):
             line = line.rstrip()
 
             data = line.split(' ')
-
+            
             image_data = data[:4]
 
             metadata = data[4:]
 
-            image_name = image_data[0]
-            image_label = image_data[2]
-            image_id = int(image_data[1])
-            bounding_box_number = int(image_data[3])
+            if DATASET == "MALARIA":
+                image_name = image_data[1]
+                image_label = image_data[3]
+                image_id = int(image_data[0])
+                bounding_box_number = int(image_data[2])
+            else:
+                image_name = image_data[0]
+                image_label = image_data[2]
+                image_id = int(image_data[1])
+                bounding_box_number = int(image_data[3])
 
             image = Image(image_id=image_id, image_name=image_name,
                         image_label=image_label, image_number_of_bounding_boxes=bounding_box_number)
@@ -215,13 +221,17 @@ class Utils(object):
                     labels_aux = sorted(labels_aux)
                     labels_for_graph = labels_aux
 
-                    for file_loaded, label_loaded in zip(train_data_loaded, train_labels_loaded):
+                    print("Creating train data")
+
+                    for file_loaded, label_loaded in tqdm(zip(train_data_loaded, train_labels_loaded), total=len(train_data_loaded)):
 
                         metadata_loaded = file_loaded.split('/')
 
                         loaded_extractor = metadata_loaded[7].split("_")[-1]
 
                         file = metadata_loaded[-1]
+                        if file.count("\"") > 0:
+                            file = file.replace("\"", "_")
 
                         if EXTRACTOR != loaded_extractor:
 
@@ -236,13 +246,19 @@ class Utils(object):
                     test_data_loaded = np.array(df_test_loaded_files['Files'])
                     test_labels_loaded = np.array(df_test_loaded_labels['Labels'])
 
-                    for file_loaded, label_loaded in zip(test_data_loaded, test_labels_loaded):
+                    print("Creating test data")
+
+                    for file_loaded, label_loaded in tqdm(zip(test_data_loaded, test_labels_loaded), total=len(test_data_loaded)):
 
                         metadata_loaded = file_loaded.split('/')
 
                         loaded_extractor = metadata_loaded[7].split("_")[-1]
 
                         file = metadata_loaded[-1]
+                        
+                        file = metadata_loaded[-1]
+                        if file.count("\"") > 0:
+                            file = file.replace("\"", "_")
 
                         if EXTRACTOR != loaded_extractor:
 
@@ -336,9 +352,9 @@ class Utils(object):
                     Y = np.array(all_data_used_y)
                     data_train, data_test, y_train, y_test = train_test_split(
                                                          X, Y, test_size=0.2, random_state=42)
-                    x = [self.array_from_feature_file(file) for file in data_train]
-                    allx = [self.array_from_feature_file(file) for file in data_train]
-                    tx = [self.array_from_feature_file(file) for file in data_test]
+                    x = [self.array_from_feature_file(file) for file in tqdm(data_train)]
+                    allx = [self.array_from_feature_file(file) for file in tqdm(data_train)]
+                    tx = [self.array_from_feature_file(file) for file in tqdm(data_test)]
 
                     train_values = np.max(y_train) + 1
                     test_values = np.max(y_test) + 1
@@ -443,7 +459,6 @@ class Utils(object):
         RANDOM_CUT_GRAPH = igraph.Graph(directed=False)
         RANDOM_EDGE_ADD_GRAPH = igraph.Graph(directed=False)
         RANDOM_WEIGHTED_CUT_GRAPH = igraph.Graph(directed=False)
-        global_graph = igraph.Graph(directed=False)        
 
         random_walk_object = RandomWalkGraph(RANDOM_WALK_STEP)
 
@@ -457,13 +472,11 @@ class Utils(object):
         graph_RW_size = 0
         graph_RC_size = 0
         graph_REC_size = 0
-        graph_RWC_size = 0      
-
-        global_count = 0
+        graph_RWC_size = 0
 
         for image, index in zip(images, tqdm(range(len(images)))):
 
-            if image.image_label in LABELS_TO_USE:
+            if True:
                 graph = igraph.Graph(directed=False)
                 random_walk_graph_current = igraph.Graph(directed=False)
                 random_cut_graph_current = igraph.Graph(directed=False)
@@ -477,33 +490,28 @@ class Utils(object):
                     graph.add_vertices(1)  # full connected graph
                     random_walk_graph_current.add_vertices(1)  # random walk graph
                     random_cut_graph_current.add_vertices(1)  # random cut graph
-                    global_graph.add_vertices(1)  # global graph for creation of other files
                     weighted_random_walk_graph_current.add_vertices(1) # to cut edges with a threshold
                     random_edge_creation_graph_current.add_vertices(1) # this graph will contain edges created random
 
                     graph.vs[i]['image_name'] = image.image_name
-                    global_graph.vs[global_count]['image_name'] = image.image_name
                     random_walk_graph_current.vs[i]['image_name'] = image.image_name
                     random_cut_graph_current.vs[i]['image_name'] = image.image_name
                     weighted_random_walk_graph_current.vs[i]['image_name'] = image.image_name
                     random_edge_creation_graph_current.vs[i]['image_name'] = image.image_name
 
                     graph.vs[i]['image_id'] = image.image_id
-                    global_graph.vs[global_count]['image_id'] = image.image_id
                     random_walk_graph_current.vs[i]['image_id'] = image.image_id
                     random_cut_graph_current.vs[i]['image_id'] = image.image_id
                     weighted_random_walk_graph_current.vs[i]['image_id'] = image.image_id
                     random_edge_creation_graph_current.vs[i]['image_id'] = image.image_id
 
                     graph.vs[i]['image_label'] = image.image_label
-                    global_graph.vs[global_count]['image_label'] = image.image_label
                     random_walk_graph_current.vs[i]['image_label'] = image.image_label
                     random_cut_graph_current.vs[i]['image_label'] = image.image_label
                     weighted_random_walk_graph_current.vs[i]['image_label'] = image.image_id
                     random_edge_creation_graph_current.vs[i]['image_label'] = image.image_id
 
                     graph.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
-                    global_graph.vs[global_count]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                     random_walk_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                     random_cut_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                     weighted_random_walk_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
@@ -512,7 +520,6 @@ class Utils(object):
                     bounding_box_current = image.list_of_bounding_boxes[i]
 
                     graph.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
-                    global_graph.vs[global_count]['bounding_box_id'] = bounding_box_current.bounding_box_id
                     random_walk_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
                     random_cut_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
                     weighted_random_walk_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
@@ -520,7 +527,6 @@ class Utils(object):
 
 
                     graph.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
-                    global_graph.vs[global_count]['bounding_box_label'] = bounding_box_current.bounding_box_label
                     random_walk_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
                     random_cut_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
                     weighted_random_walk_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
@@ -531,6 +537,9 @@ class Utils(object):
                             '_' + str(bounding_box_current.bounding_box_id)
                     columns.append(column)
                     indexes.append(column)
+                    
+                    if column.count("\"") > 0:
+                        column = column.replace("\"", "_")
 
                     bounding_box_file = column + '.txt'
                     if POOLING == 'max':
@@ -538,11 +547,9 @@ class Utils(object):
                     if POOLING == 'avg':
                         src_path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/feature_files_avg/{}/{}/{}'.format(DATASET, EXTRACTOR, image.image_label)
                     path = os.path.join(src_path, bounding_box_file)
-                    global_graph.vs[global_count]['bb_path'] = path
                     features = self.array_from_feature_file(path)
 
                     graph.vs[i]['features'] = features
-                    global_graph.vs[global_count]['features'] = features
                     random_walk_graph_current.vs[i]['features'] = features
                     random_cut_graph_current.vs[i]['features'] = features
                     weighted_random_walk_graph_current.vs[i]['features'] = features
@@ -569,20 +576,19 @@ class Utils(object):
                 graph_RC_size += len(RANDOM_CUT_EDGES)
                 graph_REC_size += len(RANDOM_CREATION_EDGES)
                 graph_RWC_size += len(RANDOM_WEIGHTED_EDGES)
-        
-                
+
                 random_walk_graph_current.add_edges(
                     RANDOM_WALK_EDGES)  # inserting all edges in the graph, this is the random walk edges
-                
+
                 random_cut_graph_current.add_edges(
                     RANDOM_CUT_EDGES)  # inserting all edges in the graph, this is the random cut edges
-                
+
                 weighted_random_walk_graph_current.add_edges(
                     RANDOM_WEIGHTED_EDGES)  # inserting all edges in the graph, this is the random walk weighted edges
-                
+
                 random_edge_creation_graph_current.add_edges(
                     RANDOM_CREATION_EDGES)  # inserting all edges in the graph, this is the random creation edges
-                
+
                 image_adjacency_matrix_fc = graph.get_adjacency()
                 image_data_frame_fc = pd.DataFrame(image_adjacency_matrix_fc, columns=columns, index=indexes)
 

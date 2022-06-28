@@ -433,11 +433,11 @@ def main(args):
 
 if __name__ == '__main__':
 
-    walks = [i for i in range(41)]
+    walks = [i for i in range(10)]
 
     models = ['VGG16']
 
-    lrs = [0.01, 0.001, 0.005]
+    lrs = [0.005]
 
     dropouts = [0.3, 0.5, 0.9]
 
@@ -445,7 +445,7 @@ if __name__ == '__main__':
 
     conjuntos = [i for i in range(3)]
 
-    datasets = ['UNREL']
+    datasets = ['VRD']
 
     for dataset in datasets:
 
@@ -478,7 +478,7 @@ if __name__ == '__main__':
                                                     help="number of hidden gcn units")
                                 parser.add_argument("--n-layers", type=int, default=2,
                                                     help="number of hidden gcn layers")
-                                parser.add_argument("--weight-decay", type=float, default=0.00005,
+                                parser.add_argument("--weight-decay", type=float, default=0.000005,
                                                     help="Weight for L2 loss")
                                 parser.add_argument("--self-loop", action='store_true',
                                                     help="graph self-loop (default=False)")
@@ -593,7 +593,7 @@ if __name__ == '__main__':
                                 file.close()
                             
                             print("=================TRAINING SUMMARY=================")
-                            print("Accuracy: {:.8f} +- {:.2f} | Precision: {:.8f} +- {:.2f} | Recall: {:.8f} +- {:.2f} | F1-Score {:.8f} +- {:.2f}".format(np.mean(accs), np.std(accs), np.mean(precisions), np.std(precisions), np.mean(recalls), np.std(recalls), np.mean(fscores), np.std(fscores)))
+                            print("Accuracy: {:.8f} +- {:.5f} | Precision: {:.8f} +- {:.5f} | Recall: {:.8f} +- {:.5f} | F1-Score {:.8f} +- {:.5f}".format(np.mean(accs), np.std(accs), np.mean(precisions), np.std(precisions), np.mean(recalls), np.std(recalls), np.mean(fscores), np.std(fscores)))
                             print("==================================================")
                             time.sleep(1)
                             accs = []
