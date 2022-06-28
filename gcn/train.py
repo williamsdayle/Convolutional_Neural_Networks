@@ -1,4 +1,5 @@
 import argparse
+import math
 import time
 import numpy as np
 import networkx as nx
@@ -9,14 +10,13 @@ import os
 import sys
 import scipy.sparse as sp
 import pickle as pkl
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import dgl
-from dgl import DGLGraph
 from dgl.data import register_data_args
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
 import time
 
 from models.gcn import GCN
@@ -24,7 +24,10 @@ from models.gcn import GCN
 # from models.gcn_mp import GCN
 # from models.gcn_spmv import GCN
 
-results = []
+accs = []
+precisions = []
+recalls = []
+fscores = []
 times = []
 edges_count = []
 nodes_count = []
@@ -52,7 +55,6 @@ def get_labels(base):
 
     return labels
 
-
 def parse_index_file(filename):
     """Parse index file."""
     index = []
@@ -60,13 +62,11 @@ def parse_index_file(filename):
         index.append(int(line.strip()))
     return index
 
-
 def sample_mask(idx, l):
     """Create mask."""
     mask = np.zeros(l)
     mask[idx] = 1
     return np.array(mask, dtype=np.bool)
-
 
 def _normalize(mx):
     """Row-normalize sparse matrix"""
@@ -76,7 +76,6 @@ def _normalize(mx):
     r_mat_inv = sp.diags(r_inv)
     mx = r_mat_inv.dot(mx)
     return mx
-
 
 def cm2df(cm, labels):
     df = pd.DataFrame()
@@ -88,7 +87,6 @@ def cm2df(cm, labels):
             rowdata[col_label] = cm[i, j]
         df = df.append(pd.DataFrame.from_dict({row_label: rowdata}, orient='index'))
     return df[labels]
-
 
 def load_data(dataset, model, step, fold):
     names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
@@ -159,7 +157,6 @@ def load_data(dataset, model, step, fold):
 
     return adj, features, labels, train_mask, val_mask, test_mask, size, class_num
 
-
 def evaluate(model, features, labels, mask):
     model.eval()
     with th.no_grad():
@@ -167,9 +164,12 @@ def evaluate(model, features, labels, mask):
         logits = logits[mask]
         labels = labels[mask]
         _, indices = th.max(logits, dim=1)
+        train_precision = precision_score(labels.cpu().numpy(), indices.cpu().numpy(), average='macro')
+        train_recall = recall_score(labels.cpu().numpy(), indices.cpu().numpy(), average='macro')
+        train_fscore = f1_score(labels.cpu().numpy(), indices.cpu().numpy(), average='macro')      
+        train_RMSE = math.sqrt(np.square(np.subtract(labels.cpu().numpy(), indices.cpu().numpy())).mean())   
         correct = th.sum(indices == labels)
-        return correct.item() * 1.0 / len(labels)
-
+        return correct.item() * 1.0 / len(labels), train_precision, train_recall, train_fscore, train_RMSE
 
 def class_evaluate(model, features, labels, mask, base):
     model.eval()
@@ -184,7 +184,6 @@ def class_evaluate(model, features, labels, mask, base):
                                                target_names=get_labels(base))
         correct = th.sum(indices == labels)
         return correct.item() * 1.0 / len(labels), classification, cm
-
 
 def main(args):
     best_model = None
@@ -207,6 +206,7 @@ def main(args):
 
     g = graph
     g = g.to(0)
+    g = dgl.add_self_loop(g)
     n_edges = g.number_of_edges()
     n_nodes = g.number_of_nodes()
 
@@ -293,33 +293,82 @@ def main(args):
     file = open(path, 'w')
     file.write('NUMBER OF EDGES = ' + str(n_edges) + '\n' + '\n')
     time_start = time.time()
+    
     model.train()
+    
+    best_loss = 3
+    best_acc = 0
+    best_model = None
     patience = args.early
+    
     for epoch in range(args.n_epochs):
+        optimizer.zero_grad()
         # forward
         logits = model(features)
         loss = loss_fcn(logits[train_mask], labels[train_mask])
-        loss_test = loss_fcn(logits[test_mask], labels[test_mask])
+        
+        loss.backward()
+        optimizer.step()
+        """
+        Training results
+        """
+        
+        train_acc, train_precision, train_recall, train_fscore, train_RMSE = evaluate(model, features, labels, train_mask)
+        
+        print("""
+              Epoch {:05d} | 
+              Train Loss {:.4f} | 
+              Train Accuracy {:.4f} | 
+              Train RMSE {:.4f} | 
+              Train Precision {:.4f} |
+              Train Recall {:.4f} |
+              Train F1-Score {:.4f}
+              """.format(epoch, 
+                        loss.item(),
+                        train_acc,
+                        train_RMSE, 
+                        train_precision,
+                        train_recall,
+                        train_fscore))
+        file.write(
+            "Epoch " + str(epoch) + 
+            " | Train Loss " + str(loss.item()) + 
+            " | Train Accuracy " + str(train_acc) + 
+            " | Train Precision " + str(train_precision) +
+            " | Train Recall " + str(train_recall) +
+            " | Train F1-Score " + str(train_fscore) +
+            " | Train RMSE " + str(train_RMSE) +
+            " | \n")
+        
         if epoch == 0:
-            best_test_loss = loss_test
-        if loss_test < best_test_loss:
+            best_model = model
+        elif loss < best_loss or train_acc > best_acc:
+            best_acc = train_acc
+            best_loss = loss
             best_model = model
             patience = args.early
+        
         if patience == 0:
             print("Stop by Early Stopping...")
             break
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        acc = evaluate(model, features, labels, train_mask)
-        test_acc = evaluate(model, features, labels, test_mask)
-        print("Epoch {:05d} | Loss {:.8f} | Train_Accuracy {:.9f} | Test_Accuracy {:.9f} | Test_Loss {:.9f}".format(epoch, loss.item(),
-                                                                                                   acc, test_acc, loss_test.item()))
-        file.write(
-            'Epoch ' + str(epoch) + ' | Loss ' + str(loss.item()) + ' | ' + 'Train_Accuracy ' + str(acc) + ' | \n')
         patience-=1
+        
+    """
+    Testing results
+    """
+    test_loss = loss_fcn(logits[test_mask], labels[test_mask])
+    test_acc, test_precision, test_recall, test_fscore, test_RMSE = evaluate(model, features, labels, test_mask)    
+    print("""Test Accuracy {:.4f} | 
+            Test Loss {:.4f} | 
+            Test RMSE {:.4f} | 
+            Test Precision {:.4f} |
+            Test Recall {:.4f} |
+            Test F1-Score {:.4f}""".format(test_acc,
+                                            test_loss.item(), 
+                                            test_RMSE, 
+                                            test_precision,
+                                            test_recall,
+                                            test_fscore))
         
     time_stop = time.time()
     process_time = time_stop - time_start
@@ -333,7 +382,10 @@ def main(args):
     file.write(str(test_acc) + '\n')
     file.write(str(classification) + '\n')
     cm.to_csv(path.replace('.txt', '.csv'))
-    results.append(test_acc)
+    accs.append(test_acc)
+    precisions.append(test_precision)
+    recalls.append(test_recall)
+    fscores.append(test_fscore)
     print("Test accuracy {:.2%}".format(test_acc))
     if args.walks == 0:
         th.save(best_model, 'saved_models/{}/full_connected_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
@@ -381,19 +433,19 @@ def main(args):
 
 if __name__ == '__main__':
 
-    walks = [i for i in range(41)]
+    walks = [i for i in range(10)]
 
     models = ['VGG16']
 
-    lrs = [0.01, 0.05, 0.001, 0.005]
+    lrs = [0.005]
 
     dropouts = [0.3, 0.5, 0.9]
 
-    neurons = [128, 256]
+    neurons = [256]
 
-    conjuntos = [i for i in range(5)]
+    conjuntos = [i for i in range(3)]
 
-    datasets = ['UNREL']
+    datasets = ['VRD']
 
     for dataset in datasets:
 
@@ -418,7 +470,7 @@ if __name__ == '__main__':
                                                     help="random walk steps")
                                 parser.add_argument("--lr", type=float, default=lr,
                                                     help="learning rate")
-                                parser.add_argument("--early", type=int, default=500,
+                                parser.add_argument("--early", type=int, default=300,
                                                     help="early stoping, trying to avoid overfitting")
                                 parser.add_argument("--n-epochs", type=int, default=2000,
                                                     help="number of training epochs")
@@ -448,30 +500,38 @@ if __name__ == '__main__':
                                                                                                        lr, dropout,
                                                                                                        model, neuron)
                                 file = open(std_file_name, 'w')
-                                file.write('Standard deviation of Full Connected ' + str(np.std(results)) + '\n')
-                                file.write('Mean between the experiments is ' + str(np.mean(results)) + '\n')
+                                file.write('Standard deviation of Full Connected ' + str(np.std(accs)) + '\n')
+                                file.write('Mean between the experiments is ' + str(np.mean(accs)) + '\n')
                                 file.write('Time of process [Mean] is ' + str(np.mean(times)) + '\n')
                                 file.write('Number of nodes used is ' + str(np.mean(nodes_count)) + '\n')
                                 file.write('Number of edges is ' + str(np.mean(edges_count)) + '\n')
                                 a = 0
-                                for values in results:
-                                    file.write('Conjunto ' + str(a) + ' = ' + str(values) + '\n')
-                                    a = a + 1
+                                for acc, p, r, f in zip(accs, precisions, recalls, fscores):
+                                    file.write('Fold ' + 
+                                               str(a) + ' = Acc: ' + str(acc) + 
+                                                            "Precision : " + str(p) +
+                                                            "Recall : " + str(r) + 
+                                                            "F1-Score : " + str(f) + '\n')
+                                    a = a + 1                                
                                 file.close()
                             elif walk > 0 and walk <= 10:
                                 std_file_name = 'logs/{}/STD/{}_RandomWalk_{}_{}_{}_{}_{}.txt'.format(dataset, dataset,
                                                                                                       walk, lr, dropout,
                                                                                                       model, neuron)
                                 file = open(std_file_name, 'w')
-                                file.write('Standard deviation of Random Walk ' + str(np.std(results)) + '\n')
-                                file.write('Mean between the experiments is ' + str(np.mean(results)) + '\n')
+                                file.write('Standard deviation of Random Walk ' + str(np.std(accs)) + '\n')
+                                file.write('Mean between the experiments is ' + str(np.mean(accs)) + '\n')
                                 file.write('Time of process [Mean] is ' + str(np.mean(times)) + '\n')
                                 file.write('Number of nodes used is ' + str(np.mean(nodes_count)) + '\n')
                                 file.write('Number of edges is ' + str(np.mean(edges_count)) + '\n')
                                 a = 0
-                                for values in results:
-                                    file.write('Conjunto ' + str(a) + ' = ' + str(values) + '\n')
-                                    a = a + 1
+                                for acc, p, r, f in zip(accs, precisions, recalls, fscores):
+                                    file.write('Fold ' + 
+                                               str(a) + ' = Acc: ' + str(acc) + 
+                                                            "Precision : " + str(p) +
+                                                            "Recall : " + str(r) + 
+                                                            "F1-Score : " + str(f) + '\n')
+                                    a = a + 1                                
                                 file.close()
 
                             elif walk > 10 and walk <= 20:
@@ -479,47 +539,67 @@ if __name__ == '__main__':
                                                                                                     walk, lr, dropout,
                                                                                                     model, neuron)
                                 file = open(std_file_name, 'w')
-                                file.write('Standard deviation of Random Cut ' + str(np.std(results)) + '\n')
-                                file.write('Mean between the experiments is ' + str(np.mean(results)) + '\n')
+                                file.write('Standard deviation of Random Cut ' + str(np.std(accs)) + '\n')
+                                file.write('Mean between the experiments is ' + str(np.mean(accs)) + '\n')
                                 file.write('Time of process [Mean] is ' + str(np.mean(times)) + '\n')
                                 file.write('Number of nodes used is ' + str(np.mean(nodes_count)) + '\n')
                                 file.write('Number of edges is ' + str(np.mean(edges_count)) + '\n')
                                 a = 0
-                                for values in results:
-                                    file.write('Conjunto ' + str(a) + ' = ' + str(values) + '\n')
-                                    a = a + 1
+                                for acc, p, r, f in zip(accs, precisions, recalls, fscores):
+                                    file.write('Fold ' + 
+                                               str(a) + ' = Acc: ' + str(acc) + 
+                                                            "Precision : " + str(p) +
+                                                            "Recall : " + str(r) + 
+                                                            "F1-Score : " + str(f) + '\n')
+                                    a = a + 1                                
                                 file.close()
                             elif walk > 20 and walk <= 30:
                                 std_file_name = 'logs/{}/STD/{}RandomWighted_{}_{}_{}_{}_{}.txt'.format(dataset, dataset,
                                                                                                     walk, lr, dropout,
                                                                                                     model, neuron)
                                 file = open(std_file_name, 'w')
-                                file.write('Standard deviation of Random Weighted ' + str(np.std(results)) + '\n')
-                                file.write('Mean between the experiments is ' + str(np.mean(results)) + '\n')
+                                file.write('Standard deviation of Random Weighted ' + str(np.std(accs)) + '\n')
+                                file.write('Mean between the experiments is ' + str(np.mean(accs)) + '\n')
                                 file.write('Time of process [Mean] is ' + str(np.mean(times)) + '\n')
                                 file.write('Number of nodes used is ' + str(np.mean(nodes_count)) + '\n')
                                 file.write('Number of edges is ' + str(np.mean(edges_count)) + '\n')
                                 a = 0
-                                for values in results:
-                                    file.write('Conjunto ' + str(a) + ' = ' + str(values) + '\n')
-                                    a = a + 1
+                                for acc, p, r, f in zip(accs, precisions, recalls, fscores):
+                                    file.write('Fold ' + 
+                                               str(a) + ' = Acc: ' + str(acc) + 
+                                                            "Precision : " + str(p) +
+                                                            "Recall : " + str(r) + 
+                                                            "F1-Score : " + str(f) + '\n')
+                                    a = a + 1                                
                                 file.close()
                             elif walk > 30 and walk <= 40:
                                 std_file_name = 'logs/{}/STD/{}RandomEdge_{}_{}_{}_{}_{}.txt'.format(dataset, dataset,
                                                                                                     walk, lr, dropout,
                                                                                                     model, neuron)
                                 file = open(std_file_name, 'w')
-                                file.write('Standard deviation of Random Edge ' + str(np.std(results)) + '\n')
-                                file.write('Mean between the experiments is ' + str(np.mean(results)) + '\n')
+                                file.write('Standard deviation of Random Edge ' + str(np.std(accs)) + '\n')
+                                file.write('Mean between the experiments is ' + str(np.mean(accs)) + '\n')
                                 file.write('Time of process [Mean] is ' + str(np.mean(times)) + '\n')
                                 file.write('Number of nodes used is ' + str(np.mean(nodes_count)) + '\n')
                                 file.write('Number of edges is ' + str(np.mean(edges_count)) + '\n')
                                 a = 0
-                                for values in results:
-                                    file.write('Conjunto ' + str(a) + ' = ' + str(values) + '\n')
-                                    a = a + 1
+                                for acc, p, r, f in zip(accs, precisions, recalls, fscores):
+                                    file.write('Fold ' + 
+                                               str(a) + ' = Acc: ' + str(acc) + 
+                                                            "Precision : " + str(p) +
+                                                            "Recall : " + str(r) + 
+                                                            "F1-Score : " + str(f) + '\n')
+                                    a = a + 1                                
                                 file.close()
-                            results = []
+                            
+                            print("=================TRAINING SUMMARY=================")
+                            print("Accuracy: {:.8f} +- {:.5f} | Precision: {:.8f} +- {:.5f} | Recall: {:.8f} +- {:.5f} | F1-Score {:.8f} +- {:.5f}".format(np.mean(accs), np.std(accs), np.mean(precisions), np.std(precisions), np.mean(recalls), np.std(recalls), np.mean(fscores), np.std(fscores)))
+                            print("==================================================")
+                            time.sleep(1)
+                            accs = []
+                            precisions = []
+                            recalls = []
+                            fscores = []
                             edges_count = []
                             nodes_count = []
                             times = []

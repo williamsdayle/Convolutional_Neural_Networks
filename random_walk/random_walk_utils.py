@@ -71,7 +71,7 @@ class RandomWalkGraph(object):
         if self.number_of_bboxes > 3:
             for i in range(self.number_of_bboxes):
                 edges.append((i, i))
-            clusters = dendrogram.as_clustering(n=int(len(graph.vs) * 0.4))  # or clusters = dendrogram.as_clustering(n=len(dendrogram.merges))        
+            clusters = dendrogram.as_clustering(n=dendrogram.optimal_count)  # or clusters = dendrogram.as_clustering(n=len(dendrogram.merges))        
             for cluster, index_clust in zip(clusters, range(len(clusters))):
                 for node in cluster:
                     edge = (index_clust, node)

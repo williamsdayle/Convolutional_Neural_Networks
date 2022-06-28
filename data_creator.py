@@ -16,7 +16,7 @@ def main(args):
 
     kfold_split = True
 
-    kfold_split_number = 5
+    kfold_split_number = 3
 
     RANDOM_WALK_STEP = args.walk
 
@@ -26,10 +26,11 @@ def main(args):
     '''
     Creating the data for gcn
     '''
-    folds, labels_to_use = utils.create_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, kfold=kfold_split, train=TRAIN, kfold_size=kfold_split_number)
+    folds, labels_to_use = utils.create_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, kfold=kfold_split, train=TRAIN, kfold_size=kfold_split_number, min_samples=args.minsamples)
     '''
     All the graphs
     '''
+    print("Folds created..")
     fc, rw, rc, rwec, rec, fc_time, rw_time, rc_time, rwec_time, rec_time = utils.create_graph_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, images=images,
                                   RANDOM_WALK_STEP=RANDOM_WALK_STEP, LABELS_TO_USE=labels_to_use)
 
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--walk', type=int, default=1,
                         help='The number of walks to give')
 
-    parser.add_argument('--dataset', type=str, default='UNREL',
+    parser.add_argument('--dataset', type=str, default='MIT67',
                         help='The to process')
 
     parser.add_argument('--extractor', type=str, default='VGG16',
@@ -70,6 +71,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--pooling', type=str, default='avg',
                         help='The number of walks to give')
+    
+    parser.add_argument('--minsamples', type=int, default=0,
+                        help='Number of sample min to compute and process a label')
 
     args = parser.parse_args()
 
