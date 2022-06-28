@@ -26,7 +26,7 @@ def main(args):
     '''
     Creating the data for gcn
     '''
-    folds, labels_to_use = utils.create_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, kfold=kfold_split, train=TRAIN, kfold_size=kfold_split_number)
+    folds, labels_to_use = utils.create_data(DATASET=DATASET, EXTRACTOR=EXTRACTOR, POOLING=POOLING, kfold=kfold_split, train=TRAIN, kfold_size=kfold_split_number, min_samples=args.minsamples)
     '''
     All the graphs
     '''
@@ -71,6 +71,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--pooling', type=str, default='avg',
                         help='The number of walks to give')
+    
+    parser.add_argument('--minsamples', type=int, default=0,
+                        help='Number of sample min to compute and process a label')
 
     args = parser.parse_args()
 

@@ -158,7 +158,7 @@ class Utils(object):
             self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rwec, random_weighted=True, step=RANDOM_WALK_STEP)
             self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rec, random_edge=True, step=RANDOM_WALK_STEP)
                
-    def create_data(self, DATASET, EXTRACTOR, POOLING, kfold, train, kfold_size=0):
+    def create_data(self, DATASET, EXTRACTOR, POOLING, kfold, train, kfold_size=0, min_samples=0):
         '''
         Here we create all the data for GCN, we based our model and intro files in the (KIPF; WELLING, 2016).
 
@@ -189,7 +189,7 @@ class Utils(object):
 
         folds = []  # X and Y will be added here
         labels_for_graph = []
-        cut_label_data = 20
+        cut_label_data = min_samples
 
         if kfold == True:
 
