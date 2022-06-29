@@ -177,8 +177,10 @@ def class_evaluate(model, features, labels, mask, base):
         logits = model(features)
         logits = logits[mask]
         labels = labels[mask]
+        print(labels.cpu().numpy())
         _, indices = th.max(logits, dim=1)
         cm = confusion_matrix(labels.cpu().numpy(), indices.cpu().numpy())
+        print(cm.shape)
         cm = cm2df(cm, get_labels(base))
         classification = classification_report(labels.cpu().numpy(), indices.cpu().numpy(),
                                                target_names=get_labels(base))
@@ -389,42 +391,28 @@ def main(args):
     print("Test accuracy {:.2%}".format(test_acc))
     if args.walks == 0:
         th.save(best_model, 'saved_models/{}/full_connected_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(best_model.state_dict(), model_name)
-
-        th.save(best_model, 'saved_models/{}/full_connected_model_{}.pth'.format(args.model, args.model))
+        
         model_name = 'saved_models/{}/{}_SAVED_MODEL_FULL_CONNECTED_{}.pth'.format(args.model, args.images, args.model)
         th.save(best_model.state_dict(), model_name)
 
     elif args.walks > 0 and args.walks <= 10:
 
         th.save(best_model, 'saved_models/{}/random_walk_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(best_model.state_dict(), model_name)
-
-        th.save(best_model, 'saved_models/{}/random_walk_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMWALK_{}.pth'.format(args.model, args.images, args.model)
         th.save(best_model.state_dict(), model_name)
 
     elif args.walks > 10 and args.walks <= 20:
         th.save(best_model, 'saved_models/{}/random_cut_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(best_model.state_dict(), model_name)
-
-        th.save(best_model, 'saved_models/{}/random_cut_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMCUT_{}.pth'.format(args.model, args.images, args.model)
         th.save(best_model.state_dict(), model_name)
 
     elif args.walks > 20 and args.walks <= 30:
         th.save(best_model, 'saved_models/{}/random_weighted_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(best_model.state_dict(), model_name)
-
-        th.save(best_model, 'saved_models/{}/random_weighted_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMWEIGHTED_{}.pth'.format(args.model, args.images, args.model)
         th.save(best_model.state_dict(), model_name)
 
     elif args.walks > 30 and args.walks <= 40:
         th.save(best_model, 'saved_models/{}/random_edge_model_{}_{}_{}.pth'.format(args.model, args.images, args.model, args.walks))
-        th.save(best_model.state_dict(), model_name)
-
-        th.save(best_model, 'saved_models/{}/random_edge_model_{}_{}.pth'.format(args.model, args.images, args.model))
         model_name = 'saved_models/{}/{}_SAVED_MODEL_RANDOMEDGE_{}.pth'.format(args.model, args.images, args.model)
         th.save(best_model.state_dict(), model_name)
 
@@ -433,11 +421,11 @@ def main(args):
 
 if __name__ == '__main__':
 
-    walks = [i for i in range(10)]
+    walks = [i for i in range(41)]
 
-    models = ['VGG16']
+    models = ['ResNet50']
 
-    lrs = [0.005]
+    lrs = [0.01, 0.05, 0.001, 0.005]
 
     dropouts = [0.3, 0.5, 0.9]
 
@@ -445,7 +433,7 @@ if __name__ == '__main__':
 
     conjuntos = [i for i in range(3)]
 
-    datasets = ['VRD']
+    datasets = ['UNREL']
 
     for dataset in datasets:
 
@@ -478,7 +466,7 @@ if __name__ == '__main__':
                                                     help="number of hidden gcn units")
                                 parser.add_argument("--n-layers", type=int, default=2,
                                                     help="number of hidden gcn layers")
-                                parser.add_argument("--weight-decay", type=float, default=0.000005,
+                                parser.add_argument("--weight-decay", type=float, default=0.00005,
                                                     help="Weight for L2 loss")
                                 parser.add_argument("--self-loop", action='store_true',
                                                     help="graph self-loop (default=False)")
