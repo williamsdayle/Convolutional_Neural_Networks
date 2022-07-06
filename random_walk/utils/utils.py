@@ -79,7 +79,7 @@ class Utils(object):
             line = line.rstrip()
 
             data = line.split(' ')
-            
+
             image_data = data[:4]
 
             metadata = data[4:]
@@ -158,7 +158,7 @@ class Utils(object):
             self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rwec, random_weighted=True, step=RANDOM_WALK_STEP)
             self.save(EXTRACTOR, DST_PATH, kfold_size, x, tx, allx, y, ty, ally, test_indexes, gcn_graph_rec, random_edge=True, step=RANDOM_WALK_STEP)
                
-    def create_data(self, DATASET, EXTRACTOR, POOLING, kfold, train, kfold_size=0, min_samples=0):
+    def create_data(self, DATASET, EXTRACTOR, POOLING, kfold, train, kfold_size=0):
         '''
         Here we create all the data for GCN, we based our model and intro files in the (KIPF; WELLING, 2016).
 
@@ -188,8 +188,6 @@ class Utils(object):
         '''
 
         folds = []  # X and Y will be added here
-        labels_for_graph = []
-        cut_label_data = min_samples
 
         if kfold == True:
 
@@ -221,8 +219,6 @@ class Utils(object):
                     labels_aux = sorted(labels_aux)
                     labels_for_graph = labels_aux
 
-                    print("Creating train data")
-
                     for file_loaded, label_loaded in tqdm(zip(train_data_loaded, train_labels_loaded), total=len(train_data_loaded)):
 
                         metadata_loaded = file_loaded.split('/')
@@ -230,8 +226,9 @@ class Utils(object):
                         loaded_extractor = metadata_loaded[7].split("_")[-1]
 
                         file = metadata_loaded[-1]
-                        if file.count("\"") > 0:
-                            file = file.replace("\"", "_")
+                        
+                        if file.count("\'") > 0:
+                            file = file.replace("\'", "_")
 
                         if EXTRACTOR != loaded_extractor:
 
@@ -246,8 +243,6 @@ class Utils(object):
                     test_data_loaded = np.array(df_test_loaded_files['Files'])
                     test_labels_loaded = np.array(df_test_loaded_labels['Labels'])
 
-                    print("Creating test data")
-
                     for file_loaded, label_loaded in tqdm(zip(test_data_loaded, test_labels_loaded), total=len(test_data_loaded)):
 
                         metadata_loaded = file_loaded.split('/')
@@ -256,9 +251,8 @@ class Utils(object):
 
                         file = metadata_loaded[-1]
                         
-                        file = metadata_loaded[-1]
-                        if file.count("\"") > 0:
-                            file = file.replace("\"", "_")
+                        if file.count("\'") > 0:
+                            file = file.replace("\'", "_")
 
                         if EXTRACTOR != loaded_extractor:
 
@@ -315,6 +309,12 @@ class Utils(object):
                     folds.append(fold)
 
                 else:
+                    
+                    all_train_files = []
+                    all_test_files = []
+
+                    all_train_labels = []
+                    all_test_labels = []
 
                     fold = {'fold_number': 0, 'x': [], 'allx': [], 'tx': [], 'y': [], 'ally': [], 'ty': [],
                             'test_index': []}
@@ -323,61 +323,92 @@ class Utils(object):
 
                     labels = sorted(os.listdir(path=path))
                     
-                    all_data_used = []
-                    all_data_used_y = []
-
                     x, allx, tx = [], [], []
-                    
-                    used_labels = []
-                    index = 0
 
-                    for label in labels:
+                    for label in tqdm(labels):
 
                         label_path = os.path.join(path, label)
 
                         files = os.listdir(label_path)
-                        
-                        if len(files) > cut_label_data:
-                            
-                            used_labels.append(label)
 
-                            for file in files:
-                                
-                                file_path = os.path.join(label_path, file)
-                                all_data_used.append(file_path)
-                                all_data_used_y.append(index)
-                            index+=1                                
+                        random.shuffle(files)
+                        random.shuffle(files)
 
-                    X = np.array(all_data_used)
-                    Y = np.array(all_data_used_y)
-                    data_train, data_test, y_train, y_test = train_test_split(
-                                                         X, Y, test_size=0.2, random_state=42)
-                    x = [self.array_from_feature_file(file) for file in tqdm(data_train)]
-                    allx = [self.array_from_feature_file(file) for file in tqdm(data_train)]
-                    tx = [self.array_from_feature_file(file) for file in tqdm(data_test)]
+                        number_of_files_in_the_current_label = len(files)
 
-                    train_values = np.max(y_train) + 1
-                    test_values = np.max(y_test) + 1
+                        train_size = int(round((number_of_files_in_the_current_label * train), 1))
 
-                    y = np.eye(train_values)[y_train]
-                    ally = np.eye(train_values)[y_train]
-                    ty = np.eye(test_values)[y_test]
-                            
-                    labels_for_graph = used_labels
-                    self.create_gcn_labels_file(DATASET=DATASET, labels=used_labels)
-                    df_train_files = pd.DataFrame(data_train, columns=['Files'])
-                    df_test_files = pd.DataFrame(data_test, columns=['Files'])
-                    
-                    train_labels = []
-                    test_labels = []
-                    for y_data in y_train:
-                        train_labels.append(used_labels[y_data])
-                    
-                    for y_data in y_test:
-                        test_labels.append(used_labels[y_data])
+                        test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
+                        '''
+                        Adding train values
+                        '''
+                        for file in files[test_size:]:
 
-                    df_train_labels = pd.DataFrame(train_labels, columns=['Labels'])
-                    df_test_labels = pd.DataFrame(test_labels, columns=['Labels'])
+                            all_train_labels.append(label)
+
+                            file_path = os.path.join(label_path, file)
+
+                            all_train_files.append(file_path)
+
+                            features = self.array_from_feature_file(file_path)
+
+                            x.append(features)
+                            allx.append(features)
+
+                        for file in files[:test_size]:
+
+                            all_test_labels.append(label)
+
+                            file_path = os.path.join(label_path, file)
+
+                            all_test_files.append(file_path)
+
+                            features = self.array_from_feature_file(file_path)
+
+                            tx.append(features)
+
+                    y = np.zeros((len(x), len(labels)))
+                    ally = np.zeros((len(allx), len(labels)))
+                    ty = np.zeros((len(tx), len(labels)))
+
+                    label_index = 0
+                    file_index_train = 0
+                    file_index_test = 0
+
+                    for label in tqdm(labels):
+
+                        label_path = os.path.join(path, label)
+
+                        files = os.listdir(label_path)
+
+                        number_of_files_in_the_current_label = len(files)
+
+                        train_size = int(round((number_of_files_in_the_current_label * train), 1))
+
+                        test_size = int(round((number_of_files_in_the_current_label - train_size), 1))
+
+                        for i in range(train_size):
+
+                            y[file_index_train][label_index] = 1
+
+                            ally[file_index_train][label_index] = 1
+
+                            file_index_train = file_index_train + 1
+
+
+                        for j in range(test_size):
+
+                            ty[file_index_test][label_index] = 1
+
+                            file_index_test = file_index_test + 1
+
+                        label_index = label_index + 1
+
+                    df_train_files = pd.DataFrame(all_train_files, columns=['Files'])
+                    df_test_files = pd.DataFrame(all_test_files, columns=['Files'])
+
+                    df_train_labels = pd.DataFrame(all_train_labels, columns=['Labels'])
+                    df_test_labels = pd.DataFrame(all_test_labels, columns=['Labels'])
 
                     df_test_files.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TEST_FILES.csv'.format(fold_number, DATASET))
                     df_train_files.to_csv('/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/information/benchmarks/{}_{}_TRAIN_FILES.csv'.format(fold_number, DATASET))
@@ -417,7 +448,7 @@ class Utils(object):
             traceback.print_exc('ERRO')
 
 
-        return folds, labels_for_graph
+        return folds
 
     def create_gcn_labels_file(self, DATASET, labels):
 
@@ -433,7 +464,7 @@ class Utils(object):
         f.write(str(labels))
         f.close()
 
-    def create_graph_data(self, DATASET, EXTRACTOR, POOLING, images, RANDOM_WALK_STEP, LABELS_TO_USE):
+    def create_graph_data(self, DATASET, EXTRACTOR, POOLING, images, RANDOM_WALK_STEP):
         '''
         In this method we created all our graph structure...
 
@@ -459,6 +490,7 @@ class Utils(object):
         RANDOM_CUT_GRAPH = igraph.Graph(directed=False)
         RANDOM_EDGE_ADD_GRAPH = igraph.Graph(directed=False)
         RANDOM_WEIGHTED_CUT_GRAPH = igraph.Graph(directed=False)
+        global_graph = igraph.Graph(directed=False)        
 
         random_walk_object = RandomWalkGraph(RANDOM_WALK_STEP)
 
@@ -473,6 +505,10 @@ class Utils(object):
         graph_RC_size = 0
         graph_REC_size = 0
         graph_RWC_size = 0
+        
+
+
+        global_count = 0
 
         for image, index in zip(images, tqdm(range(len(images)))):
 
@@ -490,28 +526,33 @@ class Utils(object):
                     graph.add_vertices(1)  # full connected graph
                     random_walk_graph_current.add_vertices(1)  # random walk graph
                     random_cut_graph_current.add_vertices(1)  # random cut graph
+                    global_graph.add_vertices(1)  # global graph for creation of other files
                     weighted_random_walk_graph_current.add_vertices(1) # to cut edges with a threshold
                     random_edge_creation_graph_current.add_vertices(1) # this graph will contain edges created random
 
                     graph.vs[i]['image_name'] = image.image_name
+                    global_graph.vs[global_count]['image_name'] = image.image_name
                     random_walk_graph_current.vs[i]['image_name'] = image.image_name
                     random_cut_graph_current.vs[i]['image_name'] = image.image_name
                     weighted_random_walk_graph_current.vs[i]['image_name'] = image.image_name
                     random_edge_creation_graph_current.vs[i]['image_name'] = image.image_name
 
                     graph.vs[i]['image_id'] = image.image_id
+                    global_graph.vs[global_count]['image_id'] = image.image_id
                     random_walk_graph_current.vs[i]['image_id'] = image.image_id
                     random_cut_graph_current.vs[i]['image_id'] = image.image_id
                     weighted_random_walk_graph_current.vs[i]['image_id'] = image.image_id
                     random_edge_creation_graph_current.vs[i]['image_id'] = image.image_id
 
                     graph.vs[i]['image_label'] = image.image_label
+                    global_graph.vs[global_count]['image_label'] = image.image_label
                     random_walk_graph_current.vs[i]['image_label'] = image.image_label
                     random_cut_graph_current.vs[i]['image_label'] = image.image_label
                     weighted_random_walk_graph_current.vs[i]['image_label'] = image.image_id
                     random_edge_creation_graph_current.vs[i]['image_label'] = image.image_id
 
                     graph.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
+                    global_graph.vs[global_count]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                     random_walk_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                     random_cut_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
                     weighted_random_walk_graph_current.vs[i]['image_bounding_box_number'] = image.image_number_of_bounding_boxes
@@ -520,6 +561,7 @@ class Utils(object):
                     bounding_box_current = image.list_of_bounding_boxes[i]
 
                     graph.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
+                    global_graph.vs[global_count]['bounding_box_id'] = bounding_box_current.bounding_box_id
                     random_walk_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
                     random_cut_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
                     weighted_random_walk_graph_current.vs[i]['bounding_box_id'] = bounding_box_current.bounding_box_id
@@ -527,6 +569,7 @@ class Utils(object):
 
 
                     graph.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
+                    global_graph.vs[global_count]['bounding_box_label'] = bounding_box_current.bounding_box_label
                     random_walk_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
                     random_cut_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
                     weighted_random_walk_graph_current.vs[i]['bounding_box_label'] = bounding_box_current.bounding_box_label
@@ -537,9 +580,6 @@ class Utils(object):
                             '_' + str(bounding_box_current.bounding_box_id)
                     columns.append(column)
                     indexes.append(column)
-                    
-                    if column.count("\"") > 0:
-                        column = column.replace("\"", "_")
 
                     bounding_box_file = column + '.txt'
                     if POOLING == 'max':
@@ -547,9 +587,11 @@ class Utils(object):
                     if POOLING == 'avg':
                         src_path = '/home/william/Mestrado/Projeto/Convolutional_Neural_Networks/src/feature_files_avg/{}/{}/{}'.format(DATASET, EXTRACTOR, image.image_label)
                     path = os.path.join(src_path, bounding_box_file)
+                    global_graph.vs[global_count]['bb_path'] = path
                     features = self.array_from_feature_file(path)
 
                     graph.vs[i]['features'] = features
+                    global_graph.vs[global_count]['features'] = features
                     random_walk_graph_current.vs[i]['features'] = features
                     random_cut_graph_current.vs[i]['features'] = features
                     weighted_random_walk_graph_current.vs[i]['features'] = features
@@ -576,19 +618,20 @@ class Utils(object):
                 graph_RC_size += len(RANDOM_CUT_EDGES)
                 graph_REC_size += len(RANDOM_CREATION_EDGES)
                 graph_RWC_size += len(RANDOM_WEIGHTED_EDGES)
-
+        
+                
                 random_walk_graph_current.add_edges(
                     RANDOM_WALK_EDGES)  # inserting all edges in the graph, this is the random walk edges
-
+                
                 random_cut_graph_current.add_edges(
                     RANDOM_CUT_EDGES)  # inserting all edges in the graph, this is the random cut edges
-
+                
                 weighted_random_walk_graph_current.add_edges(
                     RANDOM_WEIGHTED_EDGES)  # inserting all edges in the graph, this is the random walk weighted edges
-
+                
                 random_edge_creation_graph_current.add_edges(
                     RANDOM_CREATION_EDGES)  # inserting all edges in the graph, this is the random creation edges
-
+                
                 image_adjacency_matrix_fc = graph.get_adjacency()
                 image_data_frame_fc = pd.DataFrame(image_adjacency_matrix_fc, columns=columns, index=indexes)
 

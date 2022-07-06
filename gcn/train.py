@@ -177,10 +177,8 @@ def class_evaluate(model, features, labels, mask, base):
         logits = model(features)
         logits = logits[mask]
         labels = labels[mask]
-        print(labels.cpu().numpy())
         _, indices = th.max(logits, dim=1)
         cm = confusion_matrix(labels.cpu().numpy(), indices.cpu().numpy())
-        print(cm.shape)
         cm = cm2df(cm, get_labels(base))
         classification = classification_report(labels.cpu().numpy(), indices.cpu().numpy(),
                                                target_names=get_labels(base))
@@ -425,15 +423,15 @@ if __name__ == '__main__':
 
     models = ['ResNet50']
 
-    lrs = [0.01, 0.05, 0.001, 0.005]
+    lrs = [0.001]
 
-    dropouts = [0.3, 0.5, 0.9]
+    dropouts = [0.3]
 
     neurons = [256]
 
     conjuntos = [i for i in range(3)]
 
-    datasets = ['UNREL']
+    datasets = ['MIT67']
 
     for dataset in datasets:
 
@@ -466,7 +464,7 @@ if __name__ == '__main__':
                                                     help="number of hidden gcn units")
                                 parser.add_argument("--n-layers", type=int, default=2,
                                                     help="number of hidden gcn layers")
-                                parser.add_argument("--weight-decay", type=float, default=0.00005,
+                                parser.add_argument("--weight-decay", type=float, default=0.000005,
                                                     help="Weight for L2 loss")
                                 parser.add_argument("--self-loop", action='store_true',
                                                     help="graph self-loop (default=False)")
