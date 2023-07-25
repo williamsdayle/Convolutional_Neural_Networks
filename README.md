@@ -1,5 +1,10 @@
 # Image Classification through Graph Neural Networks and Random Walks
 
-William Sdayle Marins Silva
+Methods
+--------
+![alt text](review.png)
 
-![alt text](src/method.jpg)
+
+Results
+-------
+![alt text](result.png)
