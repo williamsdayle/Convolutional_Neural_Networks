@@ -2,7 +2,7 @@
 
 Methods
 --------
-![alt text](review.png)
+![alt text](review.jpg)
 
 
 Results
