@@ -1,4 +1,4 @@
-# MELHORIAS NA CLASSIFICAÇÃO DE IMAGENS CONTEXTUAIS ATRAVÉS DE GRAFOS CONVOLUCIONAIS E MÉTODOS DE OTIMIZAÇÃO ALEATÓRIA
+# Image Classification through Graph Neural Networks and Random Walks
 
 William Sdayle Marins Silva
 
