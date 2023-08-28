@@ -24,7 +24,7 @@ Figure 2 shows examples of images classified by the GCNFC and GCNRW. In Figure 2
 when compared to the GCNFC classification (cat-on-the-top-of-dog)
 
 <p align="center">
-  <img src="result.png" width="700" alt>
+  <img src="results.jpg" width="500" alt>
 </p>
 
 <p align="center">
