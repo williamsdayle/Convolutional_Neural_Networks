@@ -30,3 +30,7 @@ when compared to the GCNFC classification (cat-on-the-top-of-dog)
 <p align="center">
  <em>Figure 2 - Classification Results</em>
 </p>
+
+### Paper
+---------
+**https://link.springer.com/chapter/10.1007/978-3-031-42505-9_20**
